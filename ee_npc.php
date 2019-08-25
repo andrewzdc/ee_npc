@@ -53,12 +53,12 @@ require_once 'country_functions.php';
 require_once 'Country.class.php';
 require_once 'PublicMarket.class.php';
 
-require_once 'rainbow_strat.php';
-require_once 'farmer_strat.php';
-require_once 'techer_strat.php';
-require_once 'casher_strat.php';
-require_once 'indy_strat.php';
-require_once 'oiler_strat.php';
+require_once 'strat/rainbow_strat.php';
+require_once 'strat/farmer_strat.php';
+require_once 'strat/techer_strat.php';
+require_once 'strat/casher_strat.php';
+require_once 'strat/indy_strat.php';
+require_once 'strat/oiler_strat.php';
 
 define("RAINBOW", Colors::getColoredString("Rainbow", "purple"));
 define("FARMER", Colors::getColoredString("Farmer", "cyan"));
