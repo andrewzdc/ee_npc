@@ -1,0 +1,38 @@
+# you need to set environment variables e.g. these lines to your .bash_profile
+#
+# export EENPC_AI_KEY=<your api_key from http://www.earthempires.com/ai/api>
+# export EENPC_USERNAME=<your ee username>
+#
+# ... or you can specify the values directly in this file by editing this file so it looks like this:
+#
+# environment:
+#   - EENPC_AI_KEY = <your_API_key>
+#   - EENPC_USERNAME = <your ee username>
+#
+# then run the docker container with:
+#
+# docker-compose up --build
+#
+
+version: '3'
+services:
+  ee_npc:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+       DOCKER_RAILS:
+    image: ee_npc
+    volumes:
+      - .:/ee_npc:cached
+    working_dir: /ee_npc
+    environment:
+      - EENPC_AI_KEY
+      - EENPC_USERNAME
+    entrypoint:
+      - php
+      - ee_npc.php
+    restart: always
+
+volumes:
+  ee_npc:
