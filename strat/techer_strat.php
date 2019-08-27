@@ -84,9 +84,9 @@ function play_techer_strat($server)
 
         //market actions
 
-        // if (turns_of_food($c) > 50 && turns_of_money($c) > 50 && $c->money > 3500 * 500 && ($c->built() > 80 || $c->money > $c->fullBuildCost() - $c->runCash()) && $c->tpt > 200) { // 40 turns of food
-        //     buy_techer_goals($c, $c->money - $c->fullBuildCost() - $c->runCash()); //keep enough money to build out everything
-        // }
+        if (turns_of_food($c) > 50 && turns_of_money($c) > 50 && $c->money > 3500 * 500 && ($c->built() > 80 || $c->money > $c->fullBuildCost() - $c->runCash()) && $c->tpt > 200) { // 40 turns of food
+            buy_techer_goals($c, $c->money - $c->fullBuildCost() - $c->runCash()); //keep enough money to build out everything
+        }
     }
     $c->countryStats(TECHER, techerGoals($c));
 
@@ -172,7 +172,7 @@ function sell_max_tech(&$c)
     }
 
 
-    $nogoods_high   = 7000;
+    $nogoods_high   = 7500;
     $nogoods_low    = 2000;
     $nogoods_stddev = 1500;
     $nogoods_step   = 1;
@@ -194,7 +194,7 @@ function sell_max_tech(&$c)
                 Debug::msg("sell_max_tech:B:$key");
 
                 $price[$key] = min(
-                    9999,
+                    7500,
                     floor(PublicMarket::price($key) * Math::purebell($rmin, $max, $rstddev, $rstep))
                 );
 
