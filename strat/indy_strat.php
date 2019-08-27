@@ -54,8 +54,6 @@ function play_indy_strat($server)
     $owned_on_market_info = get_owned_on_market_info(); //find out what we have on the market
     //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
-    buy_indy_goals($c, 0);
-
     while ($c->turns > 0) {
 
         $result = play_indy_turn($c);
@@ -88,28 +86,6 @@ function play_indy_strat($server)
             // 40 turns of food
             //keep enough money to build out everything
             buy_indy_goals($c, $c->money - $c->fullBuildCost() - $c->runCash());
-        }
-
-        global $cpref;
-        $tol = $cpref->price_tolerance; //should be between 0.5 and 1.5
-        if (turns_of_food($c) > 50 && turns_of_money($c) > 50 && $c->money > 3500 * 500) {
-        // 40 turns of food, and more than 2x nw in cash on hand
-            //out("Try to buy tech?");
-            //min what we'll use in max(20,turns-left) turns basically
-            $spend = min($c->money, $c->money + max(20, $c->turns) * $c->income) * 0.4;
-
-            if ($c->pt_indy < 158) {
-                PublicMarket::buy_tech($c, 't_indy', $spend * 2 / 5, 3500 * $tol);
-            }
-            if ($c->pt_mil > 90) {
-                PublicMarket::buy_tech($c, 't_mil', $spend * 1 / 5, 3500 * $tol);
-            }
-            if ($c->pt_bus < 160) {
-                PublicMarket::buy_tech($c, 't_bus', $spend * 1 / 5, 3500 * $tol);
-            }
-            if ($c->pt_res < 160) {
-                PublicMarket::buy_tech($c, 't_res', $spend * 1 / 5, 3500 * $tol);
-            }
         }
 
     }
