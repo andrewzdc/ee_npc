@@ -337,7 +337,7 @@ function govtStats($countries)
 
         $s = $settings->$cnum->strat;
         if (!isset($govs[$s])) {
-            $govs[$s] = [Bots::txtStrat($cnum), 0, 999999, 0, 0];
+            $govs[$s] = [Bots::txtStrat($cnum), 0, 999999, 0, 0, []];
         }
 
         if (!isset($settings->$cnum->networth) || !isset($settings->$cnum->land)) {
@@ -350,6 +350,7 @@ function govtStats($countries)
         $govs[$s][2]  = min($settings->$cnum->nextplay - time(), $govs[$s][2]);
         $govs[$s][3] += $settings->$cnum->networth;
         $govs[$s][4] += $settings->$cnum->land;
+        $govs[$s][5][] = $cnum;
         $tnw         += $settings->$cnum->networth;
         $tld         += $settings->$cnum->land;
     }
@@ -374,7 +375,8 @@ function govtStats($countries)
             $next = ' [Next:'.str_pad($gov[2], 5, ' ', STR_PAD_LEFT).']';
             $anw  = ' [ANW:'.str_pad(round($gov[3] / $gov[1] / 1000000, 2), 6, ' ', STR_PAD_LEFT).'M]';
             $ald  = ' [ALnd:'.str_pad(round($gov[4] / $gov[1] / 1000, 2), 6, ' ', STR_PAD_LEFT).'k]';
-            out(str_pad($gov[0], 18).': '.str_pad($gov[1], 4, ' ', STR_PAD_LEFT).$next.$anw.$ald);
+            $cnums= ' ['.implode(',',$gov[5]).']';
+            out(str_pad($gov[0], 18).': '.str_pad($gov[1], 4, ' ', STR_PAD_LEFT).$next.$anw.$ald.$cnums);
         }
     }
 }//end govtStats()
@@ -636,7 +638,7 @@ function update_c(&$c, $result)
     $str .= $netmoney.str_pad(engnot($c->food).' Bu', 14, ' ', STR_PAD_LEFT).engnot($netfood); //Text for screen
 
     global $APICalls;
-    $str = str_pad($c->turns, 3).' Turns - '.$str.' '.str_pad($event, 8).' API: '.$APICalls;
+    $str = '[#'.$c->cnum.'] '.str_pad($c->turns, 3).' Turns - '.$str.' '.str_pad($event, 8).' API: '.$APICalls;
     if ($c->money < 0 || $c->food < 0) {
         $str = Colors::getColoredString($str, "red");
     }
