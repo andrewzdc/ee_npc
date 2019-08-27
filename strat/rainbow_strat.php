@@ -5,6 +5,7 @@ namespace EENPC;
 function play_rainbow_strat($server)
 {
     global $cnum;
+    global $cpref;
     out("Playing ".RAINBOW." turns for #$cnum ".siteURL($cnum));
     //$main = get_main();     //get the basic stats
     //out_data($main);          //output the main data
@@ -50,13 +51,14 @@ function play_rainbow_strat($server)
         Allies::fill('res');
     }
 
-    if ($c->m_j > 1000000) {
-        Allies::fill('off');
-    }
+    // if ($c->m_j > 1000000) {
+    //     Allies::fill('off');
+    // }
 
-    //because why n
-    if ($c->govt == 'M') {
-        Allies::fill('trade');
+    if (!isset($cpref->target_land) || $cpref->target_land == null) {
+      $cpref->target_land = Math::purebell(10000, 30000, 5000);
+      save_cpref($cnum,$cpref);
+      out('Setting target acreage for #'.$cnum.' to '.$cpref->target_land);
     }
 
     //get the PM info
@@ -71,26 +73,28 @@ function play_rainbow_strat($server)
     //var_export($owned_on_market_info);
 
     while ($c->turns > 0) {
-        //$result = PublicMarket::buy($c,array('m_bu'=>100),array('m_bu'=>400));
         $result = play_rainbow_turn($c);
+
         if ($result === false) {  //UNEXPECTED RETURN VALUE
             $c = get_advisor();     //UPDATE EVERYTHING
             continue;
         }
-        update_c($c, $result);
-        if (!$c->turns % 5) {                   //Grab new copy every 5 turns
+
+        if ($result === null) {
+          $hold = true;
+        } else {
+          update_c($c, $result);
+          $hold = false;
+        }
+
+        if (!$c->turns % 5) { //Grab new copy every 5 turns
             $c->updateMain(); //we probably don't need to do this *EVERY* turn
         }
 
-        $hold = money_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        $hold = $hold || money_management($c);
+        $hold = $hold || food_management($c);
 
-        $hold = food_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        if ($hold) { break; }
 
         if (turns_of_food($c) > 70
             && turns_of_money($c) > 70
@@ -125,97 +129,49 @@ function play_rainbow_strat($server)
 function play_rainbow_turn(&$c)
 {
  //c as in country!
-    $target_bpt = 65;
+
     global $turnsleep;
     usleep($turnsleep);
-    //out($main->turns . ' turns left');
-    if ($c->shouldBuildSingleCS($target_bpt)) {
-        //LOW BPT & CAN AFFORD TO BUILD
-        //build one CS if we can afford it and are below our target BPT
-        return Build::cs(); //build 1 CS
-    } elseif ($c->shouldBuildFullBPT($target_bpt)) {
-        //build a full BPT if we can afford it
-        return build_rainbow($c);
-    } elseif ($c->shouldBuildFourCS($target_bpt)) {
-        //build 4CS if we can afford it and are below our target BPT (80)
-        return Build::cs(4); //build 4 CS
-    } elseif ($c->tpt > $c->land * 0.10 && rand(0, 10) > 5) {
-        //tech per turn is greater than land*0.17 -- just kindof a rough "don't tech below this" rule... lower for rainbow
-        return tech_techer($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
-        //return tech_rainbow($c);
-    } elseif ($c->built() > 50) {  //otherwise... explore if we can
-        if ($c->explore_rate == $c->explore_min) {
-            return explore($c, min(5, max(1, $c->turns - 1), max(1, min(turns_of_money($c), turns_of_food($c)) - 3)));
-        } else {
-            return explore($c, min(max(1, $c->turns - 1), max(1, min(turns_of_money($c), turns_of_food($c)) - 3)));
-        }
-    } elseif ($c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet && $c->food > 7000) {
-        return sellextrafood_rainbow($c);
-    } elseif ($c->protection == 0 && total_cansell_tech($c) > 20 * $c->tpt && selltechtime($c)
+
+    if ($c->protection == 0 && total_cansell_tech($c) > 20 * $c->tpt && selltechtime($c)
         || $c->turns == 1 && total_cansell_tech($c) > 20
     ) {
         //never sell less than 20 turns worth of tech
+        //always sell if we can????
         return sell_max_tech($c);
-    } else { //otherwise...  cash
-        return cash($c);
+    } elseif ($c->protection == 0 && total_cansell_military($c) > 7500 && sellmilitarytime($c)
+        || $c->turns == 1 && total_cansell_military($c) > 7500
+    ) {
+        return sell_max_military($c);
+    } elseif ($c->protection == 0 && $c->food > 7000
+        && (
+            $c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet
+            || $c->turns == 1
+        )
+    ) { //Don't sell less than 30 turns of food unless you're on your last turn (and desperate?)
+        return sellextrafood($c);
+    } elseif ($c->shouldBuildFullBPT()) {
+      return build_rainbow($c);
+    } elseif ($c->shouldBuildCS()) {
+      return Build::cs(4);
+    } elseif ($c->shouldExplore())  {
+      return explore($c);
+    } elseif ($c->tpt > $c->land * 0.10 && rand(0, 10) > 5) {
+      return tech($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
+    } elseif (turns_of_money($c) && turns_of_food($c)) {
+      return cash($c);
     }
+
 }//end play_rainbow_turn()
-
-
-function sellextrafood_rainbow(&$c)
-{
-    global $market_info;
-
-    //out("Lots of food, let's sell some!");
-    $pm_info = PrivateMarket::getRecent();
-
-    $c = get_advisor();     //UPDATE EVERYTHING
-    if (!is_object($pm_info) || !is_object($pm_info->sell_price)) {
-        out("Update PM");
-        $pm_info = PrivateMarket::getInfo();
-        //out_data($pm_info);       //output the PM info
-        //out('here?');
-    }
-
-    if (!is_object($market_info) || !is_object($market_info->buy_price)) {
-        out("Update market");
-        $market_info = get_market_info();   //get the Public Market info
-    }
-
-    $quantity = ['m_bu' => $c->food]; //sell it all! :)
-    $price    = round(max($pm_info->sell_price->m_bu, $market_info->buy_price->m_bu) * rand(80, 120) / 100);
-    $price    = ['m_bu' => $price];
-
-    if ($quantity > 5000 || !is_object($c)) {
-        out("Sell Public ".$quantity->m_bu);
-        return PublicMarket::sell($c, $quantity, $price);    //Sell food!
-    } else {
-        out("Can't Sell!");
-    }
-}//end sellextrafood_rainbow()
-
 
 function build_rainbow(&$c)
 {
-    if ($c->foodnet < 0) { //build farms if we are foodnet < 0
+    if ($c->foodnet < 0) {
         return Build::farmer($c);
     } elseif ($c->income < max(100000, 2 * $c->build_cost * $c->bpt / $c->explore_rate)) {
-        //build ent/res if we're not making more than enough to keep building continually at least $100k
-        if (rand(0, 100) > 50 && $c->income > $c->build_cost * $c->bpt / $c->explore_rate) {
-            if (($c->tpt < $c->land && rand(0, 100) > 10) || rand(0, 100) > 40) {
-                return Build::techer($c);
-            } else {
-                return Build::indy($c);
-            }
-        } else {
-            return Build::casher($c);
-        }
-    } else { //build indies or labs
-        if (($c->tpt < $c->land && rand(0, 100) > 10) || rand(0, 100) > 40) {
-            return Build::techer($c);
-        } else {
-            return Build::indy($c);
-        }
+      return Build::casher($c);
+    } else {
+      return Build::techer($c);
     }
 }//end build_rainbow()
 

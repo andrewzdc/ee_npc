@@ -7,6 +7,7 @@ $techlist = ['t_mil','t_med','t_bus','t_res','t_agri','t_war','t_ms','t_weap','t
 function play_techer_strat($server)
 {
     global $cnum;
+    global $cpref;
     out("Playing ".TECHER." Turns for #$cnum ".siteURL($cnum));
     //$main = get_main();     //get the basic stats
     //out_data($main);          //output the main data
@@ -20,6 +21,12 @@ function play_techer_strat($server)
 
     if ($c->b_lab > 2000) {
         Allies::fill('res');
+    }
+
+    if (!isset($cpref->target_land) || $cpref->target_land == null) {
+      $cpref->target_land = Math::purebell(5000, 13000, 4000);
+      save_cpref($cnum,$cpref);
+      out('Setting target acreage for #'.$cnum.' to '.$cpref->target_land);
     }
 
     out($c->turns.' turns left');
@@ -53,30 +60,33 @@ function play_techer_strat($server)
     while ($c->turns > 0) {
         //$result = PublicMarket::buy($c,array('m_bu'=>100),array('m_bu'=>400));
         $result = play_techer_turn($c);
+
         if ($result === false) {  //UNEXPECTED RETURN VALUE
             $c = get_advisor();     //UPDATE EVERYTHING
             continue;
         }
-        update_c($c, $result);
-        if (!$c->turns % 5) {                   //Grab new copy every 5 turns
+
+        if ($result === null) {
+          $hold = true;
+        } else {
+          update_c($c, $result);
+          $hold = false;
+        }
+
+        if (!$c->turns % 5) { //Grab new copy every 5 turns
             $c->updateMain(); //we probably don't need to do this *EVERY* turn
         }
 
+        $hold = $hold || money_management($c);
+        $hold = $hold || food_management($c);
 
+        if ($hold) { break; }
 
-        $hold = money_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        //market actions
 
-        $hold = food_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
-
-        if (turns_of_food($c) > 50 && turns_of_money($c) > 50 && $c->money > 3500 * 500 && ($c->built() > 80 || $c->money > $c->fullBuildCost() - $c->runCash()) && $c->tpt > 200) { // 40 turns of food
-            buy_techer_goals($c, $c->money - $c->fullBuildCost() - $c->runCash()); //keep enough money to build out everything
-        }
+        // if (turns_of_food($c) > 50 && turns_of_money($c) > 50 && $c->money > 3500 * 500 && ($c->built() > 80 || $c->money > $c->fullBuildCost() - $c->runCash()) && $c->tpt > 200) { // 40 turns of food
+        //     buy_techer_goals($c, $c->money - $c->fullBuildCost() - $c->runCash()); //keep enough money to build out everything
+        // }
     }
     $c->countryStats(TECHER, techerGoals($c));
 
@@ -86,50 +96,29 @@ function play_techer_strat($server)
 
 function play_techer_turn(&$c)
 {
- //c as in country!
-    $target_bpt = 65;
+
     global $turnsleep, $mktinfo, $server_avg_land;
     $mktinfo = null;
     usleep($turnsleep);
-    //out($main->turns . ' turns left');
 
-
-    if ($c->shouldBuildSingleCS($target_bpt)) {
-        //LOW BPT & CAN AFFORD TO BUILD
-        //build one CS if we can afford it and are below our target BPT
-        return Build::cs(); //build 1 CS
-    } elseif ($c->protection == 0 && total_cansell_tech($c) > 20 * $c->tpt && selltechtime($c)
+    if ($c->protection == 0 && total_cansell_tech($c) > 20 * $c->tpt && selltechtime($c)
         || $c->turns == 1 && total_cansell_tech($c) > 20
     ) {
         //never sell less than 20 turns worth of tech
         //always sell if we can????
         return sell_max_tech($c);
-    } elseif ($c->shouldBuildSpyIndies()) {
-        //build a full BPT of indies if we have less than that, and we're out of protection
-        return Build::indy($c);
-    } elseif ($c->shouldBuildFullBPT($target_bpt)) {
-        //build a full BPT if we can afford it
-        return Build::techer($c);
-    } elseif ($c->shouldBuildFourCS($target_bpt)) {
-        //build 4CS if we can afford it and are below our target BPT (80)
-        return Build::cs(4); //build 4 CS
-    } elseif ($c->tpt > $c->land * 0.17 * 1.3 && $c->tpt > 100 && rand(0, 100) > 2) {
-        //tech per turn is greater than land*0.17 -- just kindof a rough "don't tech below this" rule...
-        //so, 10 if they can... cap at turns - 1
-        return tech_techer($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
-    } elseif ($c->built() > 50
-        && ($c->land < 5000 || rand(0, 100) > 95 && $c->land < $server_avg_land)
-    ) {
-        //otherwise... explore if we can, for the early bits of the set
-        if ($c->explore_rate == $c->explore_min) {
-            return explore($c, min(5, max(1, $c->turns - 1), max(1, min(turns_of_money($c), turns_of_food($c)) - 3)));
-        } else {
-            return explore($c, min(max(1, $c->turns - 1), max(1, min(turns_of_money($c), turns_of_food($c)) - 3)));
-        }
-    } else { //otherwise, tech, obviously
-        //so, 10 if they can... cap at turns - 1
-        return tech_techer($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
+    } elseif ($c->shouldBuildFullBPT()) {
+      return Build::techer($c);
+    } elseif ($c->shouldBuildCS()) {
+      return Build::cs(4);
+    } elseif ($c->shouldExplore(8000))  {
+      return explore($c);
+    } elseif (onmarket_value($c) == 0 && $c->built() < 75) {
+      return tech($c, 1);
+    } else {
+      return tech($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
     }
+
 }//end play_techer_turn()
 
 
@@ -183,12 +172,12 @@ function sell_max_tech(&$c)
     }
 
 
-    $nogoods_high   = 9000;
+    $nogoods_high   = 7000;
     $nogoods_low    = 2000;
     $nogoods_stddev = 1500;
     $nogoods_step   = 1;
-    $rmax           = 1.30; //percent
-    $rmin           = 0.80; //percent
+    $rmax           = 1.20; //percent
+    $rmin           = 0.90; //percent
     $rstep          = 0.01;
     $rstddev        = 0.10;
     $price          = [];
@@ -225,72 +214,6 @@ function sell_max_tech(&$c)
     return $result;
 }//end sell_max_tech()
 
-
-/**
- * Make it so we can tech multiple turns...
- *
- * @param  Object  $c     Country Object
- * @param  integer $turns Number of turns to tech
- *
- * @return EEResult       Teching
- */
-function tech_techer(&$c, $turns = 1)
-{
-    //lets do random weighting... to some degree
-    //$market_info = get_market_info();   //get the Public Market info
-    //global $market;
-
-    $techfloor = 600;
-
-    $mil  = max(pow(PublicMarket::price('mil') - $techfloor, 2), rand(0, 30000));
-    $med  = max(pow(PublicMarket::price('med') - $techfloor, 2), rand(0, 500));
-    $bus  = max(pow(PublicMarket::price('bus') - $techfloor, 2), rand(10, 40000));
-    $res  = max(pow(PublicMarket::price('res') - $techfloor, 2), rand(10, 40000));
-    $agri = max(pow(PublicMarket::price('agri') - $techfloor, 2), rand(10, 30000));
-    $war  = max(pow(PublicMarket::price('war') - $techfloor, 2), rand(0, 1000));
-    $ms   = max(pow(PublicMarket::price('ms') - $techfloor, 2), rand(0, 2000));
-    $weap = max(pow(PublicMarket::price('weap') - $techfloor, 2), rand(0, 2000));
-    $indy = max(pow(PublicMarket::price('indy') - $techfloor, 2), rand(5, 30000));
-    $spy  = max(pow(PublicMarket::price('spy') - $techfloor, 2), rand(0, 1000));
-    $sdi  = max(pow(PublicMarket::price('sdi') - $techfloor, 2), rand(2, 15000));
-    $tot  = $mil + $med + $bus + $res + $agri + $war + $ms + $weap + $indy + $spy + $sdi;
-
-    $turns = max(1, min($turns, $c->turns));
-    $left  = $c->tpt * $turns;
-    $left -= $mil = min($left, floor($c->tpt * $turns * ($mil / $tot)));
-    $left -= $med = min($left, floor($c->tpt * $turns * ($med / $tot)));
-    $left -= $bus = min($left, floor($c->tpt * $turns * ($bus / $tot)));
-    $left -= $res = min($left, floor($c->tpt * $turns * ($res / $tot)));
-    $left -= $agri = min($left, floor($c->tpt * $turns * ($agri / $tot)));
-    $left -= $war = min($left, floor($c->tpt * $turns * ($war / $tot)));
-    $left -= $ms = min($left, floor($c->tpt * $turns * ($ms / $tot)));
-    $left -= $weap = min($left, floor($c->tpt * $turns * ($weap / $tot)));
-    $left -= $indy = min($left, floor($c->tpt * $turns * ($indy / $tot)));
-    $left -= $spy = min($left, floor($c->tpt * $turns * ($spy / $tot)));
-    $left -= $sdi = max($left, min($left, floor($c->tpt * $turns * ($sdi / $tot))));
-    if ($left != 0) {
-        die("What the hell?");
-    }
-
-    return tech(
-        [
-            'mil' => $mil,
-            'med' => $med,
-            'bus' => $bus,
-            'res' => $res,
-            'agri' => $agri,
-            'war' => $war,
-            'ms' => $ms,
-            'weap' => $weap,
-            'indy' => $indy,
-            'spy' => $spy,
-            'sdi' => $sdi
-        ]
-    );
-}//end tech_techer()
-
-
-
 function buy_techer_goals(&$c, $spend = null)
 {
     $goals = techerGoals($c);
@@ -302,7 +225,7 @@ function techerGoals(&$c)
 {
     return [
         //what, goal, priority
-        ['dpa', $c->defPerAcreTarget(1.0), 2],
-        ['nlg', $c->nlgTarget(),2 ],
+        ['dpa', $c->defPerAcreTarget(1.0), 1],
+        ['nlg', $c->nlgTarget(),1 ],
     ];
 }//end techerGoals()

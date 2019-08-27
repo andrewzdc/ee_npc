@@ -5,6 +5,7 @@ namespace EENPC;
 function play_casher_strat($server)
 {
     global $cnum;
+    global $cpref;
     out("Playing ".CASHER." Turns for #$cnum ".siteURL($cnum));
     //$main = get_main();     //get the basic stats
     //out_data($main);          //output the main data
@@ -33,6 +34,12 @@ function play_casher_strat($server)
         }
     }
 
+    if (!isset($cpref->target_land) || $cpref->target_land == null) {
+      $cpref->target_land = Math::purebell(10000, 30000, 5000);
+      save_cpref($cnum,$cpref);
+      out('Setting target acreage for #'.$cnum.' to '.$cpref->target_land);
+    }
+
     out($c->turns.' turns left');
     out('Explore Rate: '.$c->explore_rate.'; Min Rate: '.$c->explore_min);
     //$pm_info = get_pm_info(); //get the PM info
@@ -46,25 +53,29 @@ function play_casher_strat($server)
     while ($c->turns > 0) {
         //$result = PublicMarket::buy($c,array('m_bu'=>100),array('m_bu'=>400));
         $result = play_casher_turn($c);
+
         if ($result === false) {  //UNEXPECTED RETURN VALUE
             $c = get_advisor();     //UPDATE EVERYTHING
             continue;
         }
-        update_c($c, $result);
-        if (!$c->turns % 5) {                   //Grab new copy every 5 turns
+
+        if ($result === null) {
+          $hold = true;
+        } else {
+          update_c($c, $result);
+          $hold = false;
+        }
+
+        if (!$c->turns % 5) { //Grab new copy every 5 turns
             $c->updateMain(); //we probably don't need to do this *EVERY* turn
         }
 
+        $hold = $hold || money_management($c);
+        $hold = $hold || food_management($c);
 
-        $hold = money_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        if ($hold) { break; }
 
-        $hold = food_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        //market actions
 
         if (turns_of_food($c) > 40
             && $c->money > 3500 * 500
@@ -87,36 +98,21 @@ function play_casher_strat($server)
 function play_casher_turn(&$c)
 {
  //c as in country!
-    $target_bpt = 65;
+
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
-    if ($c->shouldBuildSingleCS($target_bpt)) {
-        //LOW BPT & CAN AFFORD TO BUILD
-        //build one CS if we can afford it and are below our target BPT
-        return Build::cs(); //build 1 CS
-    } elseif ($c->shouldBuildSpyIndies()) {
-        //build a full BPT of indies if we have less than that, and we're out of protection
-        return Build::indy($c);
-    } elseif ($c->shouldBuildFullBPT($target_bpt)) {
-        //build a full BPT if we can afford it
-        return Build::casher($c);
-    } elseif ($c->shouldBuildFourCS($target_bpt)) {
-        //build 4CS if we can afford it and are below our target BPT (80)
-        return Build::cs(4); //build 4 CS
-    } elseif ($c->built() > 50) {
-        //otherwise... explore if we can
-        if ($c->explore_rate == $c->explore_min) {
-            return explore($c, min(5, $c->turns, max(1, turns_of_food($c) - 3)));
-        } else {
-            return explore($c, min($c->turns, max(1, turns_of_food($c) - 3)));
-        }
-    } else {
-        //otherwise...  cash
-        return cash($c);
+
+    if ($c->shouldBuildFullBPT()) {
+      return Build::casher($c);
+    } elseif ($c->shouldBuildCS()) {
+      return Build::cs(4);
+    } elseif ($c->shouldExplore())  {
+      return explore($c);
+    } elseif (turns_of_money($c) && turns_of_food($c)) {
+      return cash($c);
     }
 }//end play_casher_turn()
-
 
 function buy_casher_goals(&$c, $spend = null)
 {
@@ -128,11 +124,11 @@ function casherGoals(&$c)
 {
     return [
         //what, goal, priority
-        ['t_bus',178,800],
-        ['t_res',178,800],
-        ['t_mil',94,100],
-        ['nlg',$c->nlgTarget(),200],
-        ['dpa',$c->defPerAcreTarget(1.0),400],
+        ['t_bus',178,10],
+        ['t_res',178,10],
+        ['t_mil',94,2],
+        ['nlg',$c->nlgTarget(),5],
+        ['dpa',$c->defPerAcreTarget(1.0),5],
         ['food', 1000000000, 1],
     ];
 }//end casherGoals()

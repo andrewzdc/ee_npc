@@ -93,9 +93,14 @@ while (1) {
         $server = getServer();
     }
 
+    global $cpref;
+
     while ($server->alive_count < $server->countries_allowed) {
+
+        $cpref = init_cpref();
+
         out("Less countries than allowed! (".$server->alive_count.'/'.$server->countries_allowed.')');
-        $send_data = ['cname' => NameGenerator::rand_name()];
+        $send_data = ['cname' => '('.$cpref->strat.')'.NameGenerator::rand_name()];
         out("Making new country named '".$send_data['cname']."'");
         $cnum = ee('create', $send_data);
         out($send_data['cname'].' (#'.$cnum.') created!');
@@ -107,9 +112,9 @@ while (1) {
             out("Sleep for $sleeptime to spread countries out");
             sleep($sleeptime);
         }
+
+        save_cpref($cnum,$cpref);
     }
-
-
 
     if ($server->reset_start > time()) {
         out("Reset has not started!");          //done() is defined below
@@ -135,37 +140,14 @@ while (1) {
     foreach ($countries as $cnum) {
         Debug::off(); //reset for new country
         $save = false;
-        if (!isset($settings->$cnum)) {
-            $settings->$cnum = json_decode(
-                json_encode(
-                    [
-                        'strat' => null,
-                        'playfreq' => null,
-                        'playrand' => null,
-                        'lastplay' => 0,
-                        'nextplay' => 0,
-                        'price_tolerance' => 1.0,
-                        'def' => 1.0,
-                        'off' => 1.0,
-                        'aggro' => 1.0,
-                        'allyup' => null,
-                        'gdi' => null,
-                        'retal' => [],
-                    ]
-                )
-            );
-            out("Resetting Settings #$cnum", true, 'red');
-            file_put_contents($config['save_settings_file'], json_encode($settings));
-        }
 
-        global $cpref;
         $cpref = $settings->$cnum;
 
-        if (!isset($cpref->retal)) {
-            $cpref->retal = [];
-        }
-
-        $cpref->retal = json_decode(json_encode($cpref->retal), true);
+        // if (!isset($cpref->retal)) {
+        //     $cpref->retal = [];
+        // }
+        //
+        // $cpref->retal = json_decode(json_encode($cpref->retal), true);
 
         $mktinfo = null;
 
@@ -177,6 +159,8 @@ while (1) {
 
         if (!isset($cpref->playfreq) || $cpref->playfreq == null) {
             $cpref->playfreq = Math::purebell($server->turn_rate, $server->turn_rate * $rules->maxturns, $server->turn_rate * 20, $server->turn_rate);
+            $cpref->playfreq = Math::purebell($server->turn_rate, $server->turn_rate * 5, $server->turn_rate * 2, $server->turn_rate);
+            $cpref->playfreq = Math::purebell(300, 900, 300, $server->turn_rate);
             $cpref->playrand = mt_rand(10, 20) / 10.0; //between 1.0 and 2.0
             out("Resetting Play #$cnum", true, 'red');
             $save = true;
@@ -210,7 +194,6 @@ while (1) {
 
         if (!isset($cpref->gdi)) {
             $cpref->gdi = (bool)(rand(0, 2) == 2);
-            //out("Setting GDI to ".($cpref->gdi ? "true" : "false"), true, 'brown');
         }
 
         if ($cpref->nextplay < time()) {
@@ -219,7 +202,7 @@ while (1) {
             }
 
             Events::new();
-            Country::listRetalsDue();
+            // Country::listRetalsDue();
             //sleep(1);
 
             $playfactor = 1;
@@ -253,9 +236,9 @@ while (1) {
                     GDI::leave();
                 }
 
-                if ($c->turns_played < 100 && $cpref->retal) {
-                    $cpref->retal = []; //clear the damned retal thing
-                }
+                // if ($c->turns_played < 100 && $cpref->retal) {
+                //     $cpref->retal = []; //clear the damned retal thing
+                // }
 
                 $cpref->lastplay = time();
                 $rnd             = $cpref->playrand;
@@ -273,16 +256,13 @@ while (1) {
         }
 
         if ($save) {
-            $settings->$cnum = $cpref;
-            out(Colors::getColoredString("Saving Settings", 'purple'));
-            file_put_contents($config['save_settings_file'], json_encode($settings));
-            echo "\n\n";
+          save_cpref($cnum,$cpref);
         }
     }
 
 
     $loop      = false;
-    $until_end = 50;
+    $until_end = 55;
     if ($server->reset_end - $server->turn_rate * $until_end - time() < 0) {
         for ($i = 0; $i < 5; $i++) {
             foreach ($countries as $cnum) {
@@ -327,7 +307,6 @@ while (1) {
         //Bots::playstats($countries);
         //echo "\n";
     }
-
 
     sleep($sleep); //sleep for $sleep seconds
     Bots::outNext($countries, true);
@@ -720,12 +699,11 @@ function event_text($event)
 
 function cash(&$c, $turns = 1)
 {
-                          //this means 1 is the default number of turns if not provided
     return ee('cash', ['turns' => $turns]);             //cash a certain number of turns
 }//end cash()
 
 
-function explore(&$c, $turns = 1)
+function explore(&$c, $turns = 0)
 {
     if ($c->empty > $c->land / 2) {
         $b = $c->built();
@@ -733,7 +711,17 @@ function explore(&$c, $turns = 1)
         return;
     }
 
-    //this means 1 is the default number of turns if not provided
+    if ($turns == 0) {
+      // default is to explore enough turns to be able to build 1BPT
+      $main = get_main();
+      $turns = ceil(($c->bpt - $c->empty)/$c->explore_rate);
+    }
+
+    if ($turns >= $main->turns) {
+      //leave a turn for selling
+      return;
+    }
+
     $result = ee('explore', ['turns' => $turns]);      //cash a certain number of turns
     if ($result === null) {
         out('Explore Fail? Update Advisor');
@@ -743,13 +731,69 @@ function explore(&$c, $turns = 1)
     return $result;
 }//end explore()
 
-
-function tech($tech = [])
+/**
+ * Make it so we can tech multiple turns...
+ *
+ * @param  Object  $c     Country Object
+ * @param  integer $turns Number of turns to tech
+ *
+ * @return EEResult       Teching
+ */
+function tech(&$c, $turns = 1)
 {
-                     //default is an empty array
-    return ee('tech', ['tech' => $tech]);   //research a particular set of techs
-}//end tech()
+    //lets do random weighting... to some degree
+    //$market_info = get_market_info();   //get the Public Market info
+    //global $market;
 
+    $techfloor = 600;
+
+    $mil  = max(pow(PublicMarket::price('mil') - $techfloor, 2), rand(0, 20000));
+    $med  = max(pow(PublicMarket::price('med') - $techfloor, 2), rand(0, 500));
+    $bus  = max(pow(PublicMarket::price('bus') - $techfloor, 2), rand(10, 50000));
+    $res  = max(pow(PublicMarket::price('res') - $techfloor, 2), rand(10, 50000));
+    $agri = max(pow(PublicMarket::price('agri') - $techfloor, 2), rand(10, 30000));
+    $war  = max(pow(PublicMarket::price('war') - $techfloor, 2), rand(0, 1000));
+    $ms   = max(pow(PublicMarket::price('ms') - $techfloor, 2), rand(0, 5000));
+    $weap = max(pow(PublicMarket::price('weap') - $techfloor, 2), rand(0, 5000));
+    $indy = max(pow(PublicMarket::price('indy') - $techfloor, 2), rand(5, 30000));
+    $spy  = max(pow(PublicMarket::price('spy') - $techfloor, 2), rand(0, 1000));
+    $sdi  = max(pow(PublicMarket::price('sdi') - $techfloor, 2), rand(2, 2000));
+    $tot  = $mil + $med + $bus + $res + $agri + $war + $ms + $weap + $indy + $spy + $sdi;
+
+    $turns = max(1, min($turns, $c->turns));
+    $left  = $c->tpt * $turns;
+    $left -= $mil = min($left, floor($c->tpt * $turns * ($mil / $tot)));
+    $left -= $med = min($left, floor($c->tpt * $turns * ($med / $tot)));
+    $left -= $bus = min($left, floor($c->tpt * $turns * ($bus / $tot)));
+    $left -= $res = min($left, floor($c->tpt * $turns * ($res / $tot)));
+    $left -= $agri = min($left, floor($c->tpt * $turns * ($agri / $tot)));
+    $left -= $war = min($left, floor($c->tpt * $turns * ($war / $tot)));
+    $left -= $ms = min($left, floor($c->tpt * $turns * ($ms / $tot)));
+    $left -= $weap = min($left, floor($c->tpt * $turns * ($weap / $tot)));
+    $left -= $indy = min($left, floor($c->tpt * $turns * ($indy / $tot)));
+    $left -= $spy = min($left, floor($c->tpt * $turns * ($spy / $tot)));
+    $left -= $sdi = max($left, min($left, floor($c->tpt * $turns * ($sdi / $tot))));
+    if ($left != 0) {
+        die("What the hell?");
+    }
+
+    $tech = [
+            'mil' => $mil,
+            'med' => $med,
+            'bus' => $bus,
+            'res' => $res,
+            'agri' => $agri,
+            'war' => $war,
+            'ms' => $ms,
+            'weap' => $weap,
+            'indy' => $indy,
+            'spy' => $spy,
+            'sdi' => $sdi
+        ];
+
+    return ee('tech', ['tech' => $tech]);
+
+}//end tech()
 
 function get_main()
 {
@@ -768,6 +812,38 @@ function get_rules()
     return ee('rules');      //get and return the RULES information
 }//end get_rules()
 
+function init_cpref()
+{
+  return json_decode(
+      json_encode(
+          [
+              'strat' => Bots::pickStrat($cnum),
+              'target_land' => null,
+              'playfreq' => null,
+              'playrand' => null,
+              'lastplay' => 0,
+              'nextplay' => 0,
+              'price_tolerance' => 1.0,
+              'def' => 1.0,
+              'off' => 1.0,
+              'aggro' => 1.0,
+              'allyup' => null,
+              'gdi' => null,
+              'retal' => [],
+          ]
+      )
+  );
+
+}
+
+function save_cpref($cnum,$cpref) {
+  global $config;
+  global $settings;
+  $settings->$cnum = $cpref;
+  out(Colors::getColoredString("Saving Settings", 'purple'));
+  file_put_contents($config['save_settings_file'], json_encode($settings));
+  echo "\n\n";
+}
 
 function set_indy(&$c)
 {
@@ -783,7 +859,6 @@ function set_indy(&$c)
         ]
     );      //set industrial production
 }//end set_indy()
-
 
 function update_stats($number)
 {

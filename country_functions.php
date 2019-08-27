@@ -208,6 +208,47 @@ function sell_cheap_units(&$c, $unit = 'm_tr', $fraction = 1)
 }//end sell_cheap_units()
 
 
+function sell_all_food(&$c, $fraction = 1)
+{
+    $c->updateMain();
+    $fraction   = max(0, min(1, $fraction));
+    $sell_units = [
+        'm_bu'  => floor($c->food * $fraction)
+    ];
+    if (array_sum($sell_units) == 0) {
+        out("No Food!");
+        return;
+    }
+    return PrivateMarket::sell($c, $sell_units);
+}//end sell_all_food()
+
+function sellextrafood(&$c)
+{
+    $c = get_advisor();     //UPDATE EVERYTHING
+
+    $quantity = ['m_bu' => $c->food]; //sell it all! :)
+
+    $pm_info = PrivateMarket::getRecent();
+
+    $rmax    = 1.10; //percent
+    $rmin    = 0.95; //percent
+    $rstep   = 0.01;
+    $rstddev = 0.10;
+    $max     = $c->goodsStuck('m_bu') ? 0.99 : $rmax;
+    $price   = round(
+        max(
+            $pm_info->sell_price->m_bu + 1,
+            PublicMarket::price('m_bu') * Math::purebell($rmin, $max, $rstddev, $rstep)
+        )
+    );
+    $price   = ['m_bu' => $price];
+
+    if ($price <= max(35, $pm_info->sell_price->m_bu / $c->tax()))
+    {
+        return PrivateMarket::sell($c, $quantity);
+    }
+    return PublicMarket::sell($c, $quantity, $price);
+}//end sellextrafood()
 
 function sell_all_military(&$c, $fraction = 1)
 {
@@ -339,26 +380,24 @@ function food_management(&$c)
         return true;
     }
 
-    //PUT GOODS/TECH ON MKT AS APPROPRIATE
 
+    // if ($c->food < $turns_of_food && $c->money > $turns_buy * $foodloss * $pm_info->buy_price->m_bu) {
+    //     //losing food, less than turns_buy turns left, AND have the money to buy it
+    //     //Text for screen
+    //     out(
+    //         "Less than $turns_buy turns worth of food! (".$c->foodnet."/turn) ".
+    //         "We're rich, so buy food on PM (\${$pm_info->buy_price->m_bu})!~"
+    //     );
+    //     $result = PrivateMarket::buy($c, ['m_bu' => $turns_buy * $foodloss]);  //Buy 3 turns of food!
+    //     return false;
+    // } elseif ($c->food < $turns_of_food && total_military($c) > 50) {
+    //     out("We're too poor to buy food! Sell 1/10 of our military");   //Text for screen
+    //     sell_all_military($c, 1 / 10);     //sell 1/4 of our military
+    //     $c = get_advisor();     //UPDATE EVERYTHING
+    //     return food_management($c); //RECURSION!
+    // }
 
-    if ($c->food < $turns_of_food && $c->money > $turns_buy * $foodloss * $pm_info->buy_price->m_bu) {
-        //losing food, less than turns_buy turns left, AND have the money to buy it
-        //Text for screen
-        out(
-            "Less than $turns_buy turns worth of food! (".$c->foodnet."/turn) ".
-            "We're rich, so buy food on PM (\${$pm_info->buy_price->m_bu})!~"
-        );
-        $result = PrivateMarket::buy($c, ['m_bu' => $turns_buy * $foodloss]);  //Buy 3 turns of food!
-        return false;
-    } elseif ($c->food < $turns_of_food && total_military($c) > 50) {
-        out("We're too poor to buy food! Sell 1/10 of our military");   //Text for screen
-        sell_all_military($c, 1 / 10);     //sell 1/4 of our military
-        $c = get_advisor();     //UPDATE EVERYTHING
-        return food_management($c); //RECURSION!
-    }
-
-    out('We have exhausted all food options. Valar Morguhlis.');
+    // out('We have exhausted all food options. Valar Morguhlis.');
     return false;
 }//end food_management()
 

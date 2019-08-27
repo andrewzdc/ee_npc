@@ -123,6 +123,9 @@ class Bots
 
             $stddev = round(self::playtimes_stddev($countries));
             out("Standard Deviation of play is: $stddev");
+
+            govtStats($countries);
+
         }
 
         self::outOldest($countries);

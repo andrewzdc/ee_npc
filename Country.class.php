@@ -571,44 +571,74 @@ class Country
         return true;
     }//end affordBuildBPT()
 
-
+    public function target_land()
+    {
+      global $cpref;
+      return $cpref->target_land;
+    }
 
     /**
-     * Check to see if we should build a single CS
+     * Calculate based on landgoal and remaining acres to build
      *
-     * @param  int $target_bpt The target bpt
+     * @return int            the target BPT
+     */
+
+    public function target_bpt()
+    {
+      $to_build = $this->target_land() - $this->land + $this->empty;
+      if ($to_build > 0) {
+        return floor(sqrt($to_build / 4));
+      }
+      return 0;
+    }
+
+    /**
+     * Check to see if we should build CS
      *
      * @return bool            Build or not
      */
-    public function shouldBuildSingleCS($target_bpt = 80)
+    public function shouldBuildCS()
     {
-        if (!$this->empty) {
-            //no empty land
-            return false;
-        }
+      if ($this->turns < 4) {
+          //not enough turns...
+          return false;
+      }
 
-        if ($this->money < $this->build_cost) {
-            //not enough money to build
-            return false;
-        }
+      if ($this->empty < 4) {
+          //not enough land...
+          return false;
+      }
 
-        if ($this->income < 0 && $this->money < $this->build_cost + $this->income) {
-            //going to run out of money
-            return false;
-        }
+      if ($this->bpt >= $this->target_bpt()) {
+          //we're at the target!
+          return false;
+      }
 
-        if ($this->bpt < 30 && $this->built() <= 50) {
-            //you have low BPT and low Builtings
-            return true;
-        } elseif ($this->bpt < $target_bpt && $this->b_cs % 4 != 0) {
-            //you have a BPT below target, but aren't CS % 4
-            //IF NOT YOU SHOULD BUILD 4!!
-            return true;
-        }//end countryStats()
+      if ($this->money < 4 * $this->build_cost) {
+          //not enough money...
+          return false;
+      }
 
+      if ($this->income < 0 && $this->money < 4 * $this->build_cost + 5 * $this->income) {
+          //going to run out of money
+          //use 5 because growth of military typically
+          return false;
+      }
 
-            return false;
-    }//end shouldBuildSingleCS()
+      if ($this->foodnet < 0 && $this->food < $this->foodnet * -5) {
+          //going to run out of food
+          //use 5 because growth of pop & military typically
+          return false;
+      }
+
+      if ($this->turns_played < 500) {
+        //dont spend more than half your turns on CS, except during startup
+        return $this->bpt < floor($this->turns_played / 8);
+      }
+
+      return true;
+
+    }//end shouldBuildCS()
 
     /**
      * Should we build indies to make spies?
@@ -636,83 +666,64 @@ class Country
     }//end shouldBuildSpyIndies()
 
     /**
-     * Should we built 4 CS?
+     * Should we build a full BPT?
      *
-     * @param  integer $target_bpt Target BPT
-     *
-     * @return bool                Yep or Nope
+     * @return bool Yep or Nope
      */
-    public function shouldBuildFourCS($target_bpt = 80)
+    public function shouldBuildFullBPT()
     {
-        if ($this->bpt >= $target_bpt) {
-            //we're at the target!
-            return false;
-        }
-
-        if ($this->turns < 4) {
+        if ($this->turns < 2) {
             //not enough turns...
             return false;
         }
 
-        if ($this->empty < 4) {
-            //not enough land...
-            return false;
-        }
-
-        if ($this->money < 4 * $this->build_cost) {
-            //not enough money...
-            return false;
-        }
-
-        if ($this->income < 0 && $this->money < 4 * $this->build_cost + 5 * $this->income) {
-            //going to run out of money
-            //use 5 because growth of military typically
-            return false;
-        }
-
-        if ($this->foodnet < 0 && $this->food < $this->foodnet * -5) {
-            //going to run out of food
-            //use 5 because growth of pop & military typically
-            return false;
-        }
-
-        return true;
-    }//end shouldBuildFourCS()
-
-    /**
-     * Should we build a full BPT?
-     *
-     * @param int $target_bpt Target BPT
-     *
-     * @return bool Yep or Nope
-     */
-    public function shouldBuildFullBPT($target_bpt = null)
-    {
         if ($this->empty < $this->bpt) {
             //not enough land
             return false;
         }
 
-        if ($this->money < $this->bpt * $this->build_cost + ($this->income > 0 ? 0 : $this->income * -60)) {
-            //do we have enough money? This accounts for 60 turns of burn if income < 0
-            return false;
-        }
-
-        if ($target_bpt == null) {
-            //we don't care about BPT for some reason
-            return true;
-        }
-
-        if ($this->bpt / $target_bpt < 0.80 && rand(0, 1)) {
-            //basically, if we're below 80% of our target bpt
-            //we have a 50% chance of skipping building buildings
-            //so that we can actually get our BPT up
+        if ($this->money < $this->bpt * $this->build_cost + ($this->income > 0 ? 0 : $this->income * -5)) {
+            //do we have enough money? This accounts for 5 turns of burn if income < 0
             return false;
         }
 
         return true;
     }//end shouldBuildFullBPT()
 
+    /**
+     * Should we explore?
+     *
+     * @return bool Yep or Nope
+     */
+    public function shouldExplore()
+    {
+      if ($this->built() < 50) {
+        //can't explore
+        return false;
+      }
+
+      if ($this->turns_played < 240) {
+        //if its early game we explore anyway
+        return true;
+      }
+
+      if ($this->empty < $this->bpt ) {
+        //otherwise only if less than target acreage
+        return $this->land < $this->target_land();
+      }
+      return false;
+    }//end shouldExplore()
+
+    /**
+     * Should we sell excess military (primarily for rainbow)
+     *
+     * @return bool Yep or Nope
+     */
+    public function shouldSellMilitary()
+    {
+      $target = $this->dpat ?? $this->defPerAcreTarget();
+      return ($this->defPerAcre() < $target);
+    }//end shouldSellMilitary()
 
     /**
      * Add a retal to the list
