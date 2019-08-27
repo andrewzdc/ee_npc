@@ -53,7 +53,7 @@ class Build
      */
     public static function techer(&$c)
     {
-      $ind = floor($c->bpt /10);
+      $ind = floor($c->bpt / 20);
       $lab = $c->bpt - $ind;
       return self::buildings(['lab' => $lab, 'indy' => $ind]);
     }//end techer()
@@ -68,7 +68,7 @@ class Build
      */
     public static function farmer(&$c)
     {
-      $ind = floor($c->bpt /10);
+      $ind = floor($c->bpt / 20);
       $farm = $c->bpt - $ind;
       return self::buildings(['farm' => $farm, 'indy' => $ind]);
     }//end farmer()
@@ -82,7 +82,7 @@ class Build
      */
     public static function oiler(&$c)
     {
-      $ind = floor($c->bpt /10);
+      $ind = floor($c->bpt / 20);
       $rigs = $c->bpt - $ind;
       return self::buildings(['rigs' => rigs, 'indy' => $ind]);
     }//end farmer()
@@ -97,7 +97,7 @@ class Build
      */
     public static function casher(&$c)
     {
-        $entres = floor(($c->bpt) * 0.45);
+        $entres = floor(($c->bpt) * 0.475);
         $ind = $c->bpt - 2 * $entres;
 
         return self::buildings(['ent' => $entres, 'res' => $entres, 'indy' => $ind]);
