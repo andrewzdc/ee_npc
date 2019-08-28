@@ -513,6 +513,7 @@ class Country
     public function countryStats($strat, $goals = [])
     {
         $land = str_pad(engnot($this->land), 8, ' ', STR_PAD_LEFT);
+        $t_l  = str_pad(engnot($this->target_land()), 8, ' ', STR_PAD_LEFT);
         $netw = str_pad(engnot($this->networth), 8, ' ', STR_PAD_LEFT);
         $govt = str_pad($this->govt, 8, ' ', STR_PAD_LEFT);
         $t_pl = str_pad($this->turns_played, 8, ' ', STR_PAD_LEFT);
@@ -536,15 +537,19 @@ class Country
         $s = "\n|  ";
         $e = "  |";
 
-        $str = str_pad(' '.$strat." #".$cnum.' ', 78, '-', STR_PAD_BOTH).'|';
+        $str = str_pad(' '.$govt.' '.$strat." #".$cnum.' ', 78, '-', STR_PAD_BOTH).'|';
 
+        $land = Colors::getColoredString($land, ($this->land < $this->target_land()) ? "red" : "green");
+        $blt  = Colors::getColoredString($blt,  ($this->built() < 95) ? "red" : "green");
+        $nlg  = Colors::getColoredString($nlg,  ($this->nlg() < ($this->nlgt ?? $this->nlgTarget())) ? "red" : "green");
+        $dpa  = Colors::getColoredString($dpa,  ($this->defPerAcre() < ($this->dpat ?? $this->defPerAcreTarget())) ? "red" : "green");
 
-        $str .= $s.'Government:   '.$govt.'         NLG:        '.$nlg .'         Mil: '.$pmil.$e;
-        $str .= $s.'Networth:     '.$netw.'         NLG Target: '.$nlgt.'         Bus: '.$pbus.$e;
-        $str .= $s.'Land:         '.$land.'         DPA:        '.$dpa .'         Res: '.$pres.$e;
-        $str .= $s.'Turns Played: '.$t_pl.'         DPA Target: '.$dpat.'         Agr: '.$pagr.$e;
-        $str .= $s.'Built:        '.$blt. '         Goal:       '.$goal.'         Ind: '.$pind.$e;
-        $str .= $s.'Cash:         '.$cash.'         BPT:        '.$bpt .'         TPT: '.$tpt .$e;
+        $str .= $s.'Networth:     '.$netw. '         NLG:        '.$nlg .'         Mil: '.$pmil.$e;
+        $str .= $s.'Land:         '.$land. '         NLG Target: '.$nlgt.'         Bus: '.$pbus.$e;
+        $str .= $s.'Land Target:  '.$t_l.  '         DPA:        '.$dpa .'         Res: '.$pres.$e;
+        $str .= $s.'Turns Played: '.$t_pl. '         DPA Target: '.$dpat.'         Agr: '.$pagr.$e;
+        $str .= $s.'Built:        '.$blt.  '         Goal:       '.$goal.'         Ind: '.$pind.$e;
+        $str .= $s.'Cash:         '.$cash. '         BPT:        '.$bpt .'         TPT: '.$tpt .$e;
         $str .= "\n|".str_pad(' '.$url.' ', 77, '-', STR_PAD_BOTH).'|';
 
         out($str);
@@ -699,6 +704,11 @@ class Country
     {
       if ($this->built() < 50) {
         //can't explore
+        return false;
+      }
+
+      if ($this->turns < 2) {
+        //save turn for selling
         return false;
       }
 
