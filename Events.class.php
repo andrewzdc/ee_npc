@@ -39,7 +39,7 @@ class Events
         $copyarray = (array)$result->results;
 
         foreach ($copyarray as $mainkey => $subitems) {
-            $count_sub = count($subitems);
+            $count_sub = actual_count($subitems);
             out("Events: $count_sub x $mainkey");
 
             $subitems = (array)$subitems;
