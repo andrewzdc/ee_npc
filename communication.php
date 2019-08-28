@@ -231,7 +231,6 @@ function expected_result($input)
         'gdi/join' => 'GDIJOIN',
         'gdi/leave' => 'GDILEAVE',
         'events' => 'NEW_EVENTS',
-        'events' => 'EVENTSNEW',
         'ranks/{cnum}' => 'SEARCH',
     ];
 
