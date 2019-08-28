@@ -114,19 +114,19 @@ class Bots
         global $server;
         $stddev = round(self::playtimes_stddev($countries));
         out("Standard Deviation of play is: $stddev; (".round($stddev / $server->turn_rate).' turns)');
-        if ($stddev < $server->turn_rate * 72 / 4 || $stddev > $server->turn_rate * 72) {
-            out('Recalculating Nextplays');
-            global $settings;
-            foreach ($countries as $cnum) {
-                $settings->$cnum->nextplay = time() + rand(0, $server->turn_rate * 72);
-            }
-
-            $stddev = round(self::playtimes_stddev($countries));
-            out("Standard Deviation of play is: $stddev");
-
-            govtStats($countries);
-
-        }
+        // if ($stddev < $server->turn_rate * 72 / 4 || $stddev > $server->turn_rate * 72) {
+        //     out('Recalculating Nextplays');
+        //     global $settings;
+        //     foreach ($countries as $cnum) {
+        //         $settings->$cnum->nextplay = time() + rand(0, $server->turn_rate * 72);
+        //     }
+        //
+        //     $stddev = round(self::playtimes_stddev($countries));
+        //     out("Standard Deviation of play is: $stddev");
+        //
+        //     govtStats($countries);
+        //
+        // }
 
         self::outOldest($countries);
         self::outFurthest($countries);
