@@ -157,15 +157,6 @@ while (1) {
             $save = true;
         }
 
-        if (!isset($cpref->playfreq) || $cpref->playfreq == null) {
-            $cpref->playfreq = Math::purebell($server->turn_rate, $server->turn_rate * $rules->maxturns, $server->turn_rate * 20, $server->turn_rate);
-            $cpref->playfreq = Math::purebell($server->turn_rate, $server->turn_rate * 5, $server->turn_rate * 2, $server->turn_rate);
-            $cpref->playfreq = Math::purebell(300, 900, 300, $server->turn_rate);
-            $cpref->playrand = mt_rand(10, 20) / 10.0; //between 1.0 and 2.0
-            out("Resetting Play #$cnum", true, 'red');
-            $save = true;
-        }
-
         if (!isset($cpref->price_tolerance) || $cpref->price_tolerance == 1.00) {
             $cpref->price_tolerance = round(Math::purebell(0.5, 1.5, 0.1, 0.01), 3); //50% to 150%, 10% std dev, steps of 1%
             $save                   = true;
@@ -174,10 +165,8 @@ while (1) {
             $save                   = true;
         }
 
-        if (!isset($cpref->nextplay) || !isset($cpref->lastplay) || $cpref->lastplay < time() - $server->turn_rate * $rules->maxturns) { //maxturns
+        if (!isset($cpref->nextplay) ) { //maxturns
             $cpref->nextplay = 0;
-            out("Resetting Next #$cnum", true, 'red');
-            $save = true;
         }
 
         if (!isset($cpref->lastTurns)) {
@@ -241,8 +230,7 @@ while (1) {
                 // }
 
                 $cpref->lastplay = time();
-                $rnd             = $cpref->playrand;
-                $nexttime        = round($playfactor * $cpref->playfreq * Math::purebell(1 / $rnd, $rnd, 1, 0.1));
+                $nexttime        = round(Math::purebell(200, 1200, 250));
                 $maxin           = Bots::furthest_play($cpref);
                 $nexttime        = round(min($maxin, $nexttime));
                 $cpref->nextplay = $cpref->lastplay + $nexttime;
@@ -821,8 +809,6 @@ function init_cpref()
           [
               'strat' => Bots::pickStrat($cnum),
               'target_land' => null,
-              'playfreq' => null,
-              'playrand' => null,
               'lastplay' => 0,
               'nextplay' => 0,
               'price_tolerance' => 1.0,
