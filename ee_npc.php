@@ -221,8 +221,6 @@ while (1) {
 
                 if ($cpref->gdi && !$c->gdi) {
                     GDI::join();
-                } elseif (!$cpref->gdi && $c->gdi) {
-                    GDI::leave();
                 }
 
                 // if ($c->turns_played < 100 && $cpref->retal) {
