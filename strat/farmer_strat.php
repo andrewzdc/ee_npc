@@ -151,7 +151,7 @@ function play_farmer_turn(&$c)
       return Build::farmer($c);
     } elseif ($c->shouldBuildCS()) {
         return Build::cs(4);
-    } elseif ($c->shouldExplore(20000))  {
+    } elseif ($c->shouldExplore())  {
       return explore($c);
     } elseif (onmarket_value($c) == 0 && $c->turns > 0) {
         return sell_all_food($c) ?? cash($c);

@@ -113,7 +113,7 @@ function play_techer_turn(&$c)
       return Build::techer($c);
     } elseif ($c->shouldBuildCS()) {
       return Build::cs(4);
-    } elseif ($c->shouldExplore(8000))  {
+    } elseif ($c->shouldExplore())  {
       return explore($c);
     } elseif (onmarket_value($c) == 0 && $c->built() < 75) {
       return tech($c, 1);
