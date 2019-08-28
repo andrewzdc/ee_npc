@@ -167,7 +167,9 @@ function handle_output($serverOutput, $function)
         return null;
     } elseif (expected_result($function) && $message != expected_result($function)) {
         if (is_object($message) || is_object($response)) {
+            out("Message:");
             out_data($message);
+            out("Response:");
             out_data($response);
             out("Server Output: \n".$serverOutput);
             return $response;
@@ -177,7 +179,9 @@ function handle_output($serverOutput, $function)
 
         return $response;
     } elseif (!expected_result($function)) {
+        out("Function:");
         out($function);
+        out("Message:");
         out($message);
         out_data($response);
         out("Server Output: \n".$serverOutput);
