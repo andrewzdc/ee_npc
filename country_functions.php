@@ -2,6 +2,19 @@
 
 namespace EENPC;
 
+function buy_cheap_military(&$c, $max = 1000000000, $dpnw = 175) {
+  $c = get_advisor();
+  if ($c->money < $max) { return; }
+  $prev = $c->money;
+  $surplus = $c->money - $max;
+  while ($surplus < $prev) {
+    $prev = $surplus;
+    out('Looking for bargains ('.engnot($surplus).' to spend)...');
+    buy_public_below_dpnw($c, $dpnw, $surplus);
+  }
+}
+
+
 function destock($server, $cnum)
 {
     $c = get_advisor();     //c as in country! (get the advisor)
@@ -105,8 +118,7 @@ function buy_public_below_dpnw(&$c, $dpnw, &$money = null, $shuffle = false, $de
                     $quantity = max(0, $quantity - 1);
                 }
                 $last = $quantity;
-                //out("Quantity: $quantity");
-                //out("Available: {$market_info->available->$unit}");
+                out("$quantity $unit at $".PublicMarket::price($unit));
                 //Buy UNITS!
                 $result = PublicMarket::buy($c, [$unit => $quantity], [$unit => PublicMarket::price($unit)]);
                 PublicMarket::update();
@@ -513,7 +525,7 @@ function sell_max_military(&$c)
     }
 
     $rmax    = 1.30; //percent
-    $rmin    = 0.75; //percent
+    $rmin    = 0.80; //percent
     $rstep   = 0.01;
     $rstddev = 0.10;
     $price   = [];
@@ -523,7 +535,7 @@ function sell_max_military(&$c)
         } elseif (PublicMarket::price($key) == null || PublicMarket::price($key) == 0) {
             $price[$key] = floor($pm_info->buy_price->$key * Math::purebell(0.5, 1.0, 0.3, 0.01));
         } else {
-            $max         = $c->goodsStuck($key) ? 0.99 : $rmax; //undercut if we have goods stuck
+            $max         = (turns_of_money($c) < 10) && $c->goodsStuck($key) ? 0.99 : $rmax; //undercut if we have goods stuck and are running low of cash
             $price[$key] = min(
                 $pm_info->buy_price->$key,
                 floor(PublicMarket::price($key) * Math::purebell($rmin, $max, $rstddev, $rstep))

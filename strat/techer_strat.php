@@ -88,6 +88,8 @@ function play_techer_strat($server)
             buy_techer_goals($c, $c->money - $c->fullBuildCost() - $c->runCash()); //keep enough money to build out everything
         }
     }
+    buy_cheap_military($c,1500000000,200);
+    buy_cheap_military($c);
     $c->countryStats(TECHER, techerGoals($c));
 
     return $c;

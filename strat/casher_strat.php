@@ -88,6 +88,9 @@ function play_casher_strat($server)
                 buy_casher_goals($c, $spend);
             }
         }
+
+        buy_cheap_military($c,1500000000,200);
+        buy_cheap_military($c);
     }
 
     $c->countryStats(CASHER, casherGoals($c));
