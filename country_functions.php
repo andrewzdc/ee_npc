@@ -241,12 +241,14 @@ function sellextrafood(&$c)
             PublicMarket::price('m_bu') * Math::purebell($rmin, $max, $rstddev, $rstep)
         )
     );
-    $price   = ['m_bu' => $price];
 
     if ($price <= max(35, $pm_info->sell_price->m_bu / $c->tax()))
     {
         return PrivateMarket::sell($c, $quantity);
     }
+
+    $price   = ['m_bu' => $price];
+
     return PublicMarket::sell($c, $quantity, $price);
 }//end sellextrafood()
 
