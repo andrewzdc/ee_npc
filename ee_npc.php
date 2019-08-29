@@ -695,7 +695,7 @@ function explore(&$c, $turns = 0)
     if ($turns == 0) {
       // default is to explore enough turns to be able to build 1BPT
       $main = get_main();
-      $turns = ceil(($c->bpt - $c->empty)/$c->explore_rate);
+      $turns = max(1,ceil(($c->bpt - $c->empty)/$c->explore_rate));
     }
 
     if ($turns >= $main->turns) {
