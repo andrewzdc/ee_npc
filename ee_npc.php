@@ -194,26 +194,19 @@ while (1) {
             // Country::listRetalsDue();
             //sleep(1);
 
-            $playfactor = 1;
             try {
                 switch ($cpref->strat) {
                     case 'F':
                         $c = play_farmer_strat($server, $cnum);
-
-                        $playfactor = 0.8;
                         break;
                     case 'T':
                         $c = play_techer_strat($server, $cnum);
-
-                        $playfactor = 0.5;
                         break;
                     case 'C':
                         $c = play_casher_strat($server, $cnum);
                         break;
                     case 'I':
                         $c = play_indy_strat($server, $cnum);
-
-                        $playfactor = 0.33;
                         break;
                     default:
                         $c = play_rainbow_strat($server, $cnum);
