@@ -105,6 +105,8 @@ function play_casher_turn(&$c)
     usleep($turnsleep);
     //out($main->turns . ' turns left');
 
+    if ($c->protection == 1) { sell_all_military($c,1); }
+
     if ($c->shouldBuildCS()) {
       return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {

@@ -139,6 +139,10 @@ function play_farmer_turn(&$c)
     usleep($turnsleep);
     //out($main->turns . ' turns left');
 
+    if ($c->protection == 1) {
+      sell_all_military($c,1);
+    }
+
     if ($c->protection == 0 && $c->food > 7000
         && (
             $c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet
