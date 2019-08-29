@@ -78,7 +78,7 @@ class Bots
         $held  = $cpref->lastTurns + $cpref->turnsStored;
         $diff  = $max - $held;
         $maxin = floor($diff * $server->turn_rate);
-        out('Country is holding '.$held.'. Turns will max in '.$maxin);
+        out('Country is holding '.$cpref->lastTurns."(".$cpref->turnsStored.")".'. Turns will max in '.$maxin);
         return $maxin;
     }//end furthest_play()
 
