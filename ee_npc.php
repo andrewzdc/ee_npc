@@ -100,7 +100,7 @@ while (1) {
         $cpref = init_cpref();
 
         out("Less countries than allowed! (".$server->alive_count.'/'.$server->countries_allowed.')');
-        $send_data = ['cname' => '('.$cpref->strat.')'.NameGenerator::rand_name()];
+        $send_data = ['cname' => $cpref->strat.' '.NameGenerator::rand_name()];
         out("Making new country named '".$send_data['cname']."'");
         $cnum = ee('create', $send_data);
         out($send_data['cname'].' (#'.$cnum.') created!');
@@ -805,7 +805,7 @@ function init_cpref()
   return json_decode(
       json_encode(
           [
-              'strat' => Bots::pickStrat($cnum),
+              'strat' => Bots::evenlydistributedStrat(),
               'target_land' => null,
               'lastplay' => 0,
               'nextplay' => 0,

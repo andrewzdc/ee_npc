@@ -15,6 +15,11 @@ namespace EENPC;
 
 class Bots
 {
+
+    public static $strats = [];
+
+    public static function all_strats() { return ['C','F','T','I','R','O']; }
+
     /**
      * Get the next playing cnum
      *
@@ -104,6 +109,15 @@ class Bots
         } else {
             return 'R';
         }
+    }//end pickStrat()
+
+    public static function evenlydistributedStrat()
+    {
+      if (count(self::$strats) == 0) {
+        self::$strats = self::all_strats();
+      }
+
+      return array_pop(self::$strats);
     }//end pickStrat()
 
 
