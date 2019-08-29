@@ -266,6 +266,7 @@ class Country
      */
     public function nlgTarget($powfactor = 1.00)
     {
+        if ($this->protection == 1) { return 0; }
         //lets lower it from 80+turns_playwed/7, to compete
         return floor(80 + pow($this->turns_played, $powfactor) / 15);
     }//end nlgTarget()
@@ -281,6 +282,7 @@ class Country
      */
     public function defPerAcreTarget($mult = 1.5, $powfactor = 1.0)
     {
+        if ($this->protection == 1) { return 0; }
         //out("Turns Played: {$this->turns_played}");
         $dpat = floor(75 + pow($this->turns_played, $powfactor) / 10) * $mult;
         out("DPAT: $dpat");
