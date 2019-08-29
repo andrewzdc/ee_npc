@@ -51,7 +51,7 @@ function play_casher_strat($server)
     //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
-        //$result = PublicMarket::buy($c,array('m_bu'=>100),array('m_bu'=>400));
+
         $result = play_casher_turn($c);
 
         if ($result === false) {  //UNEXPECTED RETURN VALUE
@@ -66,9 +66,8 @@ function play_casher_strat($server)
           $hold = false;
         }
 
-        if (!$c->turns % 5) { //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
+        $c = get_advisor();
+        $c->updateMain();
 
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
@@ -106,10 +105,10 @@ function play_casher_turn(&$c)
     usleep($turnsleep);
     //out($main->turns . ' turns left');
 
-    if ($c->shouldBuildFullBPT()) {
+    if ($c->shouldBuildCS()) {
+      return Build::cs();
+    } elseif ($c->shouldBuildFullBPT()) {
       return Build::casher($c);
-    } elseif ($c->shouldBuildCS()) {
-      return Build::cs(4);
     } elseif ($c->shouldExplore())  {
       return explore($c);
     } elseif (turns_of_money($c) && turns_of_food($c)) {

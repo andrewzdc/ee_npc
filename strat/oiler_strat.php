@@ -72,32 +72,28 @@ function play_oiler_strat($server)
     //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
-        //$result = PublicMarket::buy($c,array('m_bu'=>100),array('m_bu'=>400));
+
         $result = play_oiler_turn($c);
+
         if ($result === false) {  //UNEXPECTED RETURN VALUE
             $c = get_advisor();     //UPDATE EVERYTHING
             continue;
         }
 
         if ($result === null) {
-          break; //no turn options as of now come back later
+          $hold = true;
+        } else {
+          update_c($c, $result);
+          $hold = false;
         }
 
-        update_c($c, $result);
-        if (!$c->turns % 5) {                   //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
+        $c = get_advisor();
+        $c->updateMain();
 
-        $hold = money_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
+        $hold = $hold || money_management($c);
+        $hold = $hold || food_management($c);
 
-        $hold = food_management($c);
-        if ($hold) {
-            break; //HOLD TURNS HAS BEEN DECLARED; HOLD!!
-        }
-
+        if ($hold) { break; }
 
         if ($c->income < 0 && $c->money < -5 * $c->income) { //sell 1/4 of all military on PM
             out("Almost out of money! Sell 10 turns of income in food!");   //Text for screen
@@ -141,14 +137,12 @@ function play_oiler_turn(&$c)
         )
     ) { //Don't sell less than 30 turns of food unless you're on your last turn (and desperate?)
         return sellextrafood($c);
+    } elseif ($c->shouldBuildCS()) {
+        return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {
       return Build::oiler($c);
-    } elseif ($c->shouldBuildCS()) {
-        return Build::cs(4);
     } elseif ($c->shouldExplore())  {
       return explore($c);
-    } elseif (onmarket_value($c) == 0 && $c->turns > 0) {
-        return sell_all_food($c) ?? cash($c);
     } elseif (turns_of_money($c) && turns_of_food($c)) {
       return cash($c);
     }

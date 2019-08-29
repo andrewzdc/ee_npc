@@ -87,10 +87,9 @@ function play_rainbow_strat($server)
           $hold = false;
         }
 
-        if (!$c->turns % 5) { //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
-
+        $c = get_advisor();
+        $c->updateMain(); //we probably don't need to do this *EVERY* turn
+        
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
 
@@ -150,10 +149,10 @@ function play_rainbow_turn(&$c)
         )
     ) { //Don't sell less than 30 turns of food unless you're on your last turn (and desperate?)
         return sellextrafood($c);
+    } elseif ($c->shouldBuildCS()) {
+      return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {
       return build_rainbow($c);
-    } elseif ($c->shouldBuildCS()) {
-      return Build::cs(4);
     } elseif ($c->shouldExplore())  {
       return explore($c);
     } elseif ($c->tpt > $c->land * 0.10 && rand(0, 10) > 5) {

@@ -55,7 +55,6 @@ function play_indy_strat($server)
     //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
-
         $result = play_indy_turn($c);
 
         if ($result === false) {  //UNEXPECTED RETURN VALUE
@@ -70,10 +69,9 @@ function play_indy_strat($server)
           $hold = false;
         }
 
-        if (!$c->turns % 5) { //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
-
+        $c = get_advisor();
+        $c->updateMain(); //we probably don't need to do this *EVERY* turn
+        
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
 
@@ -107,10 +105,10 @@ function play_indy_turn(&$c)
         || $c->turns == 1 && total_cansell_military($c) > 7500
     ) {
         return sell_max_military($c);
+    } elseif ($c->shouldBuildCS()) {
+      return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {
       return Build::indy($c);
-    } elseif ($c->shouldBuildCS()) {
-      return Build::cs(4);
     } elseif ($c->shouldExplore()) {
       return explore($c);
     } elseif (onmarket_value($c) == 0 && $c->built() < 75) {

@@ -40,7 +40,6 @@ class Country
         $cpref->land     = $this->land;
     }//end __construct()
 
-
     public function updateMain()
     {
         $main           = get_main();                 //Grab a fresh copy of the main stats
@@ -604,7 +603,7 @@ class Country
      *
      * @return bool            Build or not
      */
-    public function shouldBuildCS()
+    public function shouldBuildCS($fraction = 0.6)
     {
       if ($this->turns < 4) {
           //not enough turns...
@@ -638,39 +637,10 @@ class Country
           return false;
       }
 
-      if ($this->turns_played < 500) {
-        //dont spend more than half your turns on CS, except during startup
-        return $this->bpt < floor($this->turns_played / 8);
-      }
-
-      return true;
+      //consider the fraction of turns to spend on CS
+      return (4 * ($this->bpt - 5)) < ($this->turns_played * $fraction);
 
     }//end shouldBuildCS()
-
-    /**
-     * Should we build indies to make spies?
-     *
-     * @return bool Yep or Nope
-     */
-    public function shouldBuildSpyIndies()
-    {
-        if ($this->empty < $this->bpt) {
-            //not enough land
-            return false;
-        }
-
-        if (!$this->affordBuildBPT()) {
-            //can't afford to build a full BPT
-            return false;
-        }
-
-        if ($this->turns_played > 150 && $this->b_indy < $this->bpt) {
-            //We're out of protection and don't have a full BPT of indies
-            return true;
-        }
-
-        return false;
-    }//end shouldBuildSpyIndies()
 
     /**
      * Should we build a full BPT?
@@ -684,7 +654,7 @@ class Country
             return false;
         }
 
-        if ($this->empty < $this->bpt) {
+        if ($this->empty < $this->bpt + 4) { //always leave 4 for CS
             //not enough land
             return false;
         }

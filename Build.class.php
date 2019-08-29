@@ -37,9 +37,8 @@ class Build
      *
      * @return $result        Game Result
      */
-    public static function cs($turns = 1)
+    public static function cs($turns = 4)
     {
-                                //default is 1 CS if not provided
         return self::buildings(['cs' => $turns]);
     }//end cs()
 

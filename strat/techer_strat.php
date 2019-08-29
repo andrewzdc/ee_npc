@@ -73,9 +73,8 @@ function play_techer_strat($server)
           $hold = false;
         }
 
-        if (!$c->turns % 5) { //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
+        $c = get_advisor();
+        $c->updateMain(); 
 
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
@@ -109,10 +108,10 @@ function play_techer_turn(&$c)
         //never sell less than 20 turns worth of tech
         //always sell if we can????
         return sell_max_tech($c);
+    } elseif ($c->shouldBuildCS(0.8)) { //target 80% of turns on cs rather than default 50
+      return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {
-      return Build::techer($c);
-    } elseif ($c->shouldBuildCS()) {
-      return Build::cs(4);
+      return $c->protection ? Build::farmer($c) : Build::techer($c);
     } elseif ($c->shouldExplore())  {
       return explore($c);
     } elseif (onmarket_value($c) == 0 && $c->built() < 75) {

@@ -93,9 +93,8 @@ function play_farmer_strat($server)
           $hold = false;
         }
 
-        if (!$c->turns % 5) { //Grab new copy every 5 turns
-            $c->updateMain(); //we probably don't need to do this *EVERY* turn
-        }
+        $c = get_advisor();
+        $c->updateMain(); //we probably don't need to do this *EVERY* turn
 
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
@@ -147,14 +146,12 @@ function play_farmer_turn(&$c)
         )
     ) { //Don't sell less than 30 turns of food unless you're on your last turn (and desperate?)
         return sellextrafood($c);
+    } elseif ($c->shouldBuildCS()) {
+        return Build::cs();
     } elseif ($c->shouldBuildFullBPT()) {
       return Build::farmer($c);
-    } elseif ($c->shouldBuildCS()) {
-        return Build::cs(4);
     } elseif ($c->shouldExplore())  {
       return explore($c);
-    } elseif (onmarket_value($c) == 0 && $c->turns > 0) {
-        return sell_all_food($c) ?? cash($c);
     } elseif (turns_of_money($c) && turns_of_food($c)) {
       return cash($c);
     }
