@@ -171,7 +171,7 @@ function build_rainbow(&$c)
     } elseif ($c->income < max(100000, 2 * $c->build_cost * $c->bpt / $c->explore_rate)) {
       return Build::casher($c);
     } else {
-      return Build::techer($c);
+      return Build::rainbow($c);
     }
 }//end build_rainbow()
 

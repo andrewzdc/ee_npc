@@ -208,6 +208,9 @@ while (1) {
                     case 'I':
                         $c = play_indy_strat($server, $cnum);
                         break;
+                    case 'O':
+                        $c = play_oiler_strat($server, $cnum);
+                        break;
                     default:
                         $c = play_rainbow_strat($server, $cnum);
                 }
@@ -242,6 +245,7 @@ while (1) {
 
     $loop      = false;
     $until_end = 55;
+
     if ($server->reset_end - $server->turn_rate * $until_end - time() < 0) {
         for ($i = 0; $i < 5; $i++) {
             foreach ($countries as $cnum) {

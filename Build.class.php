@@ -82,9 +82,10 @@ class Build
      */
     public static function oiler(&$c)
     {
-      $ind = floor($c->bpt / 20);
-      $rigs = $c->bpt - $ind;
-      return self::buildings(['rigs' => rigs, 'indy' => $ind]);
+      $rigfarm = floor(($c->bpt) * 0.475);
+      $ind = $c->bpt - 2 * $rigfarm;
+
+      return self::buildings(['rig' => $rigfarm, 'farm' => $rigfarm, 'indy' => $ind]);
     }//end farmer()
 
 
@@ -116,5 +117,21 @@ class Build
         //build indies
         return self::buildings(['indy' => $c->bpt]);
     }//end indy()
+
+    /**
+     * Build one BPT for rainbow
+     *
+     * @param  object $c Country Object
+     *
+     * @return $result   Game Result
+     */
+    public static function rainbow(&$c)
+    {
+      $rig = floor(($c->bpt) * 0.1);
+      $lab = floor(($c->bpt) * 0.7);
+      $ind = $c->bpt - ($rig + lab);
+
+      return self::buildings(['rig' => $rig, 'lab' => $lab, 'indy' => $ind]);
+    }//end farmer()
 
 }//end class
