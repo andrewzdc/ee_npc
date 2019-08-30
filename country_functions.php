@@ -2,6 +2,170 @@
 
 namespace EENPC;
 
+
+
+function run_turns_in_protection(&$c, $strat = 'R', $fraction_cs = 0.7)
+{
+    $c->updateMain();
+
+	sell_all_military($c,1);
+
+	if ($c->turns_played % 10 < $fraction_cs * 10) {
+		Build::cs();
+	}
+	elseif ($c->turns_played % 10 >= $fraction_cs * 10) {
+		switch($strat) {
+			case 'F': out(Build::farmer($c)); break;
+		}
+	
+	}
+	if ($c->built() > 50) {
+		out(explore($c));
+	}	
+
+	if (turnsoffood($c) > 5) { out(sell_all_food($c)); }
+
+
+}//end run_turns_in_protection()
+
+
+function run_turns_to_target_bpt($c, $strat = 'R')
+{
+    $c->updateMain();
+
+
+		out("Turns Played: ".$c->turns_played);
+		out("Turns Played div 12: ".$c->turns_played % 12);
+		out("Empty: ".$c->empty);
+		out("Money1: ".$c->money);
+
+		buy_farmer_goals($c, $c->money / 10);
+
+		if ($c->empty == 0 && $c->shouldExplore()) {
+        	    explore($c);
+	 	}
+	        if ($c->turns_played % 12 < 10) {
+        	    return Build::cs();
+	        }
+	        
+		else {
+
+			if ($c->shouldBuildFullBPT()) {
+		            Build::farmer($c);
+		        }
+		        elseif ($c->shouldBuildFullBPT() == 0) {
+		            Build::cs();
+		        }
+			if ($c->shouldExplore()) {
+        		    explore($c);
+	 		}
+		}	
+
+}//end run_turns_to_target_bpt()
+
+
+function run_turns_to_target_land($c, $strat = 'R')
+{
+    $c->updateMain();
+
+
+	out("Money2: ".$c->money);
+
+	//***BUY TECH GOALS***//
+	switch($strat) {
+		case 'F': out(buy_farmer_goals($c, $c->money / 15)); break;
+		case 'C': out(buy_farmer_goals($c, $c->money / 15)); break;
+		case 'I': out(buy_farmer_goals($c, $c->money / 15)); break;
+		case 'O': out(buy_farmer_goals($c, $c->money / 15)); break;
+	}
+	
+
+		if ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
+			cash($c);
+			if ($c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet) { 
+				sellextrafood($c);
+				return;
+		        }
+		}
+
+	//***BUILD IF YOU NEED TO***//
+	if ($c->shouldBuildFullBPT()) {
+		switch($strat) {
+			case 'F': return Build::farmer($c); break;
+			case 'T': return Build::techer($c); break;
+			case 'C': return Build::casher($c); break;
+			case 'I': return Build::indy($c); break;
+			case 'O': return Build::oiler($c); break;
+			case 'R': return Build::rainbow($c); break;
+		}
+	}
+
+	//***EXPLORE WHEN FULLY BUILT or OTHERWISE***//
+	if ($c->shouldExplore()) {
+	      return explore($c);
+	}
+
+
+
+
+}//end run_turns_to_target_land()
+
+
+
+function run_turns_to_stock($c, $strat = 'R')
+{
+    $c->updateMain();
+
+
+    //***DO THINGS ON MARKET***//
+
+    //Sell stock that returned from market if not a farmer
+    if($strat != 'F' && $c->food > $c->foodnet * -100) {
+			out("PRICING FOOD HIGH!! ");
+			out(sellextrafood($c, 0.900, 1));
+			$c->updateMain();
+    } 	
+
+
+
+
+
+
+		if ($strat != 'F' && $c->turns == 2 && $c->food > $c->foodnet * -3 && $c->money > 100000000) {
+			$foodtosell = $c->food - $c->foodnet * -3;
+			out("STOCKING!! ");
+			out(PublicMarket::buy($c, ['m_bu' => ($c->money - 50000000) / PublicMarket::price('m_bu')], ['m_bu' => PublicMarket::price('m_bu')]));
+			out("Food to sell: ".$foodtosell);
+			out("Food on hand: ".$c->food);
+			out("Food net: ".$c->foodnet);
+			out(sellextrafood($c, round($foodtosell / $c->food, 2), 1));
+			return sell_max_tech($c);
+		}
+
+    
+    //Sell food every 10 turns if a farmer
+    if($strat == 'F' && $c->food > $c->foodnet * 10) {
+			out("STOCKING!! ");
+			out(sellextrafood($c, 1, 1));
+		}
+
+
+    //***PLAY A TURN***//
+    switch($strat) {
+
+	case 'F': return cash($c, min(10, max(1, $c->turns -2))); break;
+	case 'T': return tech($c, max(1, $c->turns - 2)); break;
+	case 'C': return cash($c); break;
+	case 'I': return cash($c); break;
+	case 'O': return cash($c); break;
+	case 'R': return tech($c, 1); break;
+    }
+
+
+
+}//end run_turns_to_stock()
+
+
 function buy_cheap_military(&$c, $max = 1000000000, $dpnw = 175) {
   $c = get_advisor();
   if ($c->money < $max) { return; }
@@ -234,11 +398,11 @@ function sell_all_food(&$c, $fraction = 1)
     return PrivateMarket::sell($c, $sell_units);
 }//end sell_all_food()
 
-function sellextrafood(&$c)
+function sellextrafood($c, $fraction = 0.999, $stocking = 0)
 {
     $c = get_advisor();     //UPDATE EVERYTHING
 
-    $quantity = ['m_bu' => $c->food]; //sell it all! :)
+    $quantity = ['m_bu' => $c->food * $fraction]; //sell it all! :)
 
     $pm_info = PrivateMarket::getRecent();
 
@@ -254,6 +418,13 @@ function sellextrafood(&$c)
         )
     );
 
+    if ($stocking = 1) {
+	$rmax    = 1.3; //percent
+	$rmin    = 0.7; //percent
+	$stockprice = 88;
+	$price   = round($stockprice * Math::purebell($rmin, $rmax, $rstddev, $rstep));
+    }
+
     if ($price <= max(35, $pm_info->sell_price->m_bu / $c->tax()))
     {
         return PrivateMarket::sell($c, $quantity);
@@ -264,30 +435,7 @@ function sellextrafood(&$c)
     return PublicMarket::sell($c, $quantity, $price);
 }//end sellextrafood()
 
-function sellfoodtostock(&$c)
-{
-    $c = get_advisor();     //UPDATE EVERYTHING
 
-    $quantity = ['m_bu' => $c->food]; //sell it all! :)
-
-    $pm_info = PrivateMarket::getRecent();
-
-    $rmax    = 1.3; //percent
-    $rmin    = 0.7; //percent
-    $rstep   = 0.01;
-    $rstddev = 0.10;
-    $stockprice = 77;
-    $price   = round($stockprice * Math::purebell($rmin, $rmax, $rstddev, $rstep));
-
-    if ($price <= max(35, $pm_info->sell_price->m_bu / $c->tax()))
-    {
-        return PrivateMarket::sell($c, $quantity);
-    }
-
-    $price   = ['m_bu' => $price];
-
-    return PublicMarket::sell($c, $quantity, $price);
-}//end sellfoodtostock()
 
 function sell_all_military(&$c, $fraction = 1)
 {
@@ -359,7 +507,7 @@ function food_management(&$c)
 
     //out("food management");
     $foodloss  = -1 * $c->foodnet;
-    $turns_buy = max($reserve - turns_of_food($c), 50);
+    $turns_buy = min($reserve - turns_of_food($c), 5);
 
     //$c = get_advisor();     //UPDATE EVERYTHING
     //global $market;
