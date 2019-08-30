@@ -14,6 +14,8 @@ function play_techer_strat($server)
     $c = get_advisor();     //c as in country! (get the advisor)
     $c->setIndy('pro_spy');
 
+    out("Land Goal: ".$c->target_land());
+
 
     if ($c->m_spy > 10000) {
         Allies::fill('spy');
@@ -107,6 +109,10 @@ function play_techer_turn(&$c)
       sell_all_military($c,1);
       if (turnsoffood($c) > 10) { sell_all_food($c); }
     } 
+
+    if ($c->land > $c->target_land()) {
+	return run_turns_to_stock($c, 'T');
+    }
 
     if ($c->protection == 0 && $c->turns == 1 && total_cansell_tech($c) > 20) {
         //if one turn left and out of protection, sell at least 2 turns worth of tech

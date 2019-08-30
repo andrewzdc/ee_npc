@@ -171,67 +171,18 @@ function play_farmer_turn(&$c)
 
 	//*****GET TO BPT TARGET**********//
 	if ($c->bpt < $target_bpt) {
-		
-		out("Turns Played: ".$c->turns_played);
-		out("Turns Played div 12: ".$c->turns_played % 12);
-		out("Empty: ".$c->empty);
-		out("Money1: ".$c->money);
-
-		buy_farmer_goals($c, $c->money / 10);
-
-		if ($c->empty == 0 && $c->shouldExplore()) {
-        	    explore($c);
-	 	}
-	        if ($c->turns_played % 12 < 10) {
-        	    return Build::cs();
-	        }
-	        
-		else {
-			if ($c->shouldBuildFullBPT()) {
-		            Build::farmer($c);
-		        }
-		        elseif ($c->shouldBuildFullBPT() == 0) {
-		            Build::cs();
-		        }
-			if ($c->shouldExplore()) {
-        		    explore($c);
-	 		}
-		}	
-
+		return run_turns_to_target_bpt($c, 'F');
 	}
 
+	//*****GET TO LAND TARGET**********//
 	elseif ($c->land < $target_land) {
-
-		out("Money2: ".$c->money);
-
-		buy_farmer_goals($c, $c->money / 10);
-
-		if ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
-			cash($c);
-			if ($c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet) { 
-				sellextrafood($c);
-				return;
-		        }
-		}
-
-		if ($c->shouldBuildFullBPT()) {
-		      return Build::farmer($c);
-		}
-
-		if ($c->shouldExplore()) {
-		      return explore($c);
-		}
-
-
+		return run_turns_to_target_land($c, 'F');
 	}
 
 
 	//*****STOCK!!!**********//
 	else {
-		if ($c->food > $c->foodnet * 10) {
-			sellfoodtostock($c);
-		}
-		return cash($c);
+		return run_turns_to_stock($c, 'F');
 	}
 
     }
