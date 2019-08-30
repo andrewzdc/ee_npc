@@ -55,6 +55,15 @@ function play_indy_strat($server)
     //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
+
+    out("Target BPT: ".$c->target_bpt());
+    out("BPT: ".$c->bpt);
+    out("BuildCS: ".($c->shouldBuildCS()));
+    out("Farms: ".$c->b_farm);
+    out("FullBPT: ".$c->shouldBuildFullBPT());
+    out("Explore: ".$c->shouldExplore());
+    out("Built: ".$c->built()."~~");
+
         $result = play_indy_turn($c);
 
         if ($result === false) {  //UNEXPECTED RETURN VALUE
@@ -72,17 +81,14 @@ function play_indy_strat($server)
         $c = get_advisor();
         $c->updateMain(); //we probably don't need to do this *EVERY* turn
         
-        $hold = $hold || money_management($c);
-        $hold = $hold || food_management($c);
+        $hold = $hold || money_management($c) || food_management($c);
 
         if ($hold) { break; }
 
         //market actions
-        if (turns_of_food($c) > 70 && turns_of_money($c) > 70 && $c->money > 3500 * 500 && ($c->built() > 80
+        if (turns_of_food($c) > 10 && turns_of_money($c) > 10 && $c->money > $c->bpt * $c->build_cost * 5 && ($c->built() > 80
             || $c->money > $c->fullBuildCost() - $c->runCash())
         ) {
-            // 40 turns of food
-            //keep enough money to build out everything
             buy_indy_goals($c, $c->money - $c->fullBuildCost() - $c->runCash());
         }
 
@@ -97,14 +103,94 @@ function play_indy_turn(&$c)
 {
  //c as in country!
 
+    $target_bpt = 60;
+    $target_land = 15000;
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
 
-    if ($c->protection == 1) { sell_all_military($c,1); }
 
-    if ($c->protection == 0 && total_cansell_military($c) > 7500 && sellmilitarytime($c)
-        || $c->turns == 1 && total_cansell_military($c) > 7500
+    //*****START UP STRATEGY**********//
+    if ($c->protection == 1) { 
+
+		sell_all_military($c,1);
+
+	        if ($c->turns_played % 6 < 4) {
+        	    Build::cs();
+	        }
+	        elseif ($c->turns_played % 6 > 3) {
+	            Build::indy($c);
+	        }
+	        if ($c->built() > 50) {
+        	    explore($c);
+	        }	
+
+		sell_all_military($c,1);
+
+	return true;	 
+
+    }
+
+    //**OUT OF PROTECTION**//
+    if ($c->protection == 0) { 
+
+	    if (total_cansell_military($c) > 7500 && $c->turns == 1) {
+	        return sell_max_military($c);
+	    }
+
+	//*****GET TO BPT TARGET**********//
+	if ($c->bpt < $target_bpt) {
+		
+		out("Turns Played: ".$c->turns_played);
+		out("Turns Played div 12: ".$c->turns_played % 12);
+	        if ($c->turns_played % 12 < 10) {
+        	    return Build::cs();
+	        }
+	        
+		else {
+			if ($c->shouldBuildFullBPT()) {
+		            Build::indy($c);
+		        }
+		        elseif ($c->shouldBuildFullBPT() == 0) {
+		            Build::cs();
+		        }
+		        if ($c->shouldExplore()) {
+        		    explore($c);
+		        }
+		}	
+
+	}
+
+	elseif ($c->land < $target_land) {
+
+		if ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
+			cash($c);
+			if (total_cansell_military($c) > 7500) { 
+				sell_max_military($c);
+				return;
+		        }
+		}
+
+		if ($c->shouldBuildFullBPT()) {
+		      return Build::indy($c);
+		}
+
+		if ($c->shouldExplore()) {
+		      return explore($c);
+		}
+
+
+	}
+
+
+	//*****STOCK!!!**********//
+	else {
+
+	}
+
+    }
+
+    if ($c->protection == 0 && total_cansell_military($c) > 7500 && $c->turns == 1
     ) {
         return sell_max_military($c);
     } elseif ($c->shouldBuildCS()) {
@@ -113,6 +199,12 @@ function play_indy_turn(&$c)
       return Build::indy($c);
     } elseif ($c->shouldExplore()) {
       return explore($c);
+    } elseif ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
+	cash($c);
+	if ($c->protection == 0 && total_cansell_military($c) > 7500) { 
+		sell_max_military($c);
+		return;
+        }
     } elseif (onmarket_value($c) == 0 && $c->built() < 75) {
         return sell_all_military($c,0.25) ?? cash($c);
     } elseif (turns_of_money($c) && turns_of_food($c)) {

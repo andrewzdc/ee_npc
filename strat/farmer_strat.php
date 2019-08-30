@@ -120,7 +120,7 @@ function play_farmer_strat($server)
 
             if ($spend > abs($c->income) * 5) {
                 //try to batch a little bit...
-                buy_farmer_goals($c, $spend);
+                buy_farmer_goals($c, $spend/100);
             }
         }
         buy_cheap_military($c,1500000000,200);
@@ -135,9 +135,107 @@ function play_farmer_turn(&$c)
 {
  //c as in country!
 
+    $target_bpt = 60;
+    $target_land = 9000;
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
+
+    //*****START UP STRATEGY**********//
+    if ($c->protection == 1) { 
+
+		sell_all_military($c,1);
+
+	        if ($c->turns_played % 6 < 4) {
+        	    Build::cs();
+	        }
+	        elseif ($c->turns_played % 6 > 3) {
+	            Build::farmer($c);
+	        }
+	        if ($c->built() > 50) {
+        	    explore($c);
+	        }	
+
+     		 if (turnsoffood($c) > 5) { sell_all_food($c); }
+
+	return true;	 
+
+    }
+
+    //**OUT OF PROTECTION**//
+    if ($c->protection == 0) { 
+
+	    if ($c->food > $c->foodnet * 10 && $c->turns == 1) {
+		return sellextrafood($c);
+	    }
+
+	//*****GET TO BPT TARGET**********//
+	if ($c->bpt < $target_bpt) {
+		
+		out("Turns Played: ".$c->turns_played);
+		out("Turns Played div 12: ".$c->turns_played % 12);
+		out("Empty: ".$c->empty);
+		out("Money1: ".$c->money);
+
+		buy_farmer_goals($c, $c->money / 10);
+
+		if ($c->empty == 0 && $c->shouldExplore()) {
+        	    explore($c);
+	 	}
+	        if ($c->turns_played % 12 < 10) {
+        	    return Build::cs();
+	        }
+	        
+		else {
+			if ($c->shouldBuildFullBPT()) {
+		            Build::farmer($c);
+		        }
+		        elseif ($c->shouldBuildFullBPT() == 0) {
+		            Build::cs();
+		        }
+			if ($c->shouldExplore()) {
+        		    explore($c);
+	 		}
+		}	
+
+	}
+
+	elseif ($c->land < $target_land) {
+
+		out("Money2: ".$c->money);
+
+		buy_farmer_goals($c, $c->money / 10);
+
+		if ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
+			cash($c);
+			if ($c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet) { 
+				sellextrafood($c);
+				return;
+		        }
+		}
+
+		if ($c->shouldBuildFullBPT()) {
+		      return Build::farmer($c);
+		}
+
+		if ($c->shouldExplore()) {
+		      return explore($c);
+		}
+
+
+	}
+
+
+	//*****STOCK!!!**********//
+	else {
+		if ($c->food > $c->foodnet * 10) {
+			sellfoodtostock($c);
+		}
+		return cash($c);
+	}
+
+    }
+
 
     if ($c->protection == 1) {
       sell_all_military($c,1);

@@ -106,19 +106,16 @@ function play_techer_turn(&$c)
     if ($c->protection == 1) {
       sell_all_military($c,1);
       if (turnsoffood($c) > 10) { sell_all_food($c); }
-    }
+    } 
 
-    if ($c->protection == 0 && total_cansell_tech($c) > 20 * $c->tpt && selltechtime($c)
-        || $c->turns == 1 && total_cansell_tech($c) > 20
-    ) {
-        //never sell less than 20 turns worth of tech
-        //always sell if we can????
+    if ($c->protection == 0 && $c->turns == 1 && total_cansell_tech($c) > 20) {
+        //if one turn left and out of protection, sell at least 2 turns worth of tech
         return sell_max_tech($c);
     } elseif ($c->protection == 1)  {
-        if ($c->turns_played % 3 = 0) {
+        if ($c->turns_played % 3 == 0) {
             Build::cs(4);
         }
-        if ($c->turns_played % 3 = 1) {
+        if ($c->turns_played % 3 == 1) {
             Build::farmer($c);
         }
         if ($c->built() > 50) {
@@ -131,8 +128,12 @@ function play_techer_turn(&$c)
       return $c->protection ? Build::farmer($c) : Build::techer($c);
     } elseif ($c->shouldExplore())  {
       return explore($c);
-    } elseif (onmarket_value($c) == 0 && $c->built() < 75) {
-      return tech($c, 1);
+    } elseif ($c->turns < 11 && $c->money < $c->income + $c->bpt * $c->build_cost * 10) {
+         tech($c, $c->turns - 1);
+	 sell_max_tech($c);
+	 return null;
+//   } elseif (onmarket_value($c) == 0 && $c->built() < 75) {
+//      return tech($c, 1);
     } else {
       return tech($c, max(1, min(turns_of_money($c), turns_of_food($c), 13, $c->turns + 2) - 3));
     }
@@ -167,16 +168,16 @@ function sell_max_tech(&$c)
 
     $quantity = [
         'mil' => can_sell_tech($c, 't_mil'),
-        'med' => can_sell_tech($c, 't_med'),
+        'med' => 0, //can_sell_tech($c, 't_med'),
         'bus' => can_sell_tech($c, 't_bus'),
         'res' => can_sell_tech($c, 't_res'),
         'agri' => can_sell_tech($c, 't_agri'),
-        'war' => can_sell_tech($c, 't_war'),
-        'ms' => can_sell_tech($c, 't_ms'),
-        'weap' => can_sell_tech($c, 't_weap'),
+        'war' => 0, //can_sell_tech($c, 't_war'),
+        'ms' => 0, //can_sell_tech($c, 't_ms'),
+        'weap' => 0, //can_sell_tech($c, 't_weap'),
         'indy' => can_sell_tech($c, 't_indy'),
-        'spy' => can_sell_tech($c, 't_spy'),
-        'sdi' => can_sell_tech($c, 't_sdi')
+        'spy' => 0, //can_sell_tech($c, 't_spy'),
+        'sdi' => 0 //can_sell_tech($c, 't_sdi')
     ];
 
     if (array_sum($quantity) == 0) {
