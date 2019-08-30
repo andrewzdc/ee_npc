@@ -264,6 +264,31 @@ function sellextrafood(&$c)
     return PublicMarket::sell($c, $quantity, $price);
 }//end sellextrafood()
 
+function sellfoodtostock(&$c)
+{
+    $c = get_advisor();     //UPDATE EVERYTHING
+
+    $quantity = ['m_bu' => $c->food]; //sell it all! :)
+
+    $pm_info = PrivateMarket::getRecent();
+
+    $rmax    = 1.3; //percent
+    $rmin    = 0.7; //percent
+    $rstep   = 0.01;
+    $rstddev = 0.10;
+    $stockprice = 77;
+    $price   = round($stockprice * Math::purebell($rmin, $rmax, $rstddev, $rstep));
+
+    if ($price <= max(35, $pm_info->sell_price->m_bu / $c->tax()))
+    {
+        return PrivateMarket::sell($c, $quantity);
+    }
+
+    $price   = ['m_bu' => $price];
+
+    return PublicMarket::sell($c, $quantity, $price);
+}//end sellfoodtostock()
+
 function sell_all_military(&$c, $fraction = 1)
 {
     $fraction   = max(0, min(1, $fraction));
@@ -311,8 +336,8 @@ function money_management(&$c)
             out("Selling max military, and holding turns.");
             sell_max_military($c);
             return true;
-        } elseif ($c->turns_stored > 30 && total_military($c) > 1000) {
-            out("We have stored turns or can't sell on public; sell 1/10 of military.");   //Text for screen
+        } elseif ($c->turns_stored > 30 && $c->turns_stored + $c->turns > 120 && total_military($c) > 1000) {
+            out("We have stored turns / too many turns + stored turns or can't sell on public; sell 10% of military.");   //Text for screen
             sell_all_military($c, 1 / 10);
         } else {
             out("Low stored turns ({$c->turns_stored}); can't sell? (".total_cansell_military($c).')');

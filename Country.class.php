@@ -283,7 +283,7 @@ class Country
     {
         if ($this->protection == 1) { return 0; }
         //out("Turns Played: {$this->turns_played}");
-        $dpat = floor(75 + pow($this->turns_played, $powfactor) / 10) * $mult;
+        $dpat = floor(1 + pow($this->turns_played, $powfactor) / 100) * $mult;
         out("DPAT: $dpat");
         return $dpat;
     }//end defPerAcreTarget()
@@ -444,17 +444,17 @@ class Country
             $spend_partial = $spend;
         }
 
-        if ($spend_partial < 1000000) {
-            return;
-        }
+//        if ($spend_partial < 1000000) {
+//            return;
+//        }
 
         global $cpref;
         $tol = $cpref->price_tolerance; //should be between 0.5 and 1.5
 
         $what = $c->highestGoal($goals, $skip);
-        //out("Highest Goal: ".$what.' Buy $'.$spend_partial);
+        out("Highest Goal: ".$what.' Buy $'.$spend_partial);
         $diff      = 0;
-        $techprice = 8000 * $tol;
+        $techprice = 5500 * $tol;
         if ($what == 't_agri') {
             $o = $c->money;
             PublicMarket::buy_tech($c, 't_agri', $spend_partial, $techprice);
@@ -593,7 +593,7 @@ class Country
     {
       $to_build = $this->target_land() - $this->land + $this->empty;
       if ($to_build > 0) {
-        return floor(sqrt($to_build / 4));
+        return 50; //floor(sqrt($to_build / 4));
       }
       return 0;
     }
@@ -689,9 +689,9 @@ class Country
         return true;
       }
 
-      if ($this->empty < $this->bpt ) {
+      if ($this->land < $this->target_land()) {
         //otherwise only if less than target acreage
-        return $this->land < $this->target_land();
+        return true;
       }
       return false;
     }//end shouldExplore()

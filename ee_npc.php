@@ -224,7 +224,7 @@ while (1) {
                 // }
 
                 $cpref->lastplay = time();
-                $nexttime        = round(Math::purebell(200, 1200, 250));
+                $nexttime        = round(Math::purebell(600, 2000, 2000));
                 $maxin           = Bots::furthest_play($cpref);
                 $nexttime        = round(min($maxin, $nexttime));
                 $cpref->nextplay = $cpref->lastplay + $nexttime;
