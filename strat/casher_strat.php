@@ -88,8 +88,8 @@ function play_casher_strat($server)
             }
         }
 
-        buy_cheap_military($c,1500000000,200);
-        buy_cheap_military($c);
+        //buy_cheap_military($c,1500000000,200);
+        //buy_cheap_military($c);
     }
 
     $c->countryStats(CASHER, casherGoals($c));
@@ -104,6 +104,36 @@ function play_casher_turn(&$c)
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
+    $target_land = $c->target_land();
+    $target_bpt = $c->target_bpt();
+
+
+    //*****START UP STRATEGY**********//
+    if ($c->protection == 1) { 
+	return run_turns_in_protection($c, 'C', 0.8);
+    }
+
+
+    //**OUT OF PROTECTION**//
+    if ($c->protection == 0) { 
+
+	//*****GET TO BPT TARGET**********//
+	if ($c->bpt < $target_bpt) {
+		return run_turns_to_target_bpt($c, 'C');
+	}
+
+	//*****GET TO LAND TARGET**********//
+	elseif ($c->land < $target_land) {
+		return run_turns_to_target_land($c, 'C');
+	}
+
+
+	//*****STOCK!!!**********//
+	else {
+		return run_turns_to_stock($c, 'C');
+	}
+    }
+
 
     if ($c->protection == 1) { sell_all_military($c,1); }
 

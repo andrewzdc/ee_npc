@@ -143,31 +143,13 @@ function play_farmer_turn(&$c)
 
     //*****START UP STRATEGY**********//
     if ($c->protection == 1) { 
-
-		sell_all_military($c,1);
-
-	        if ($c->turns_played % 6 < 4) {
-        	    Build::cs();
-	        }
-	        elseif ($c->turns_played % 6 > 3) {
-	            Build::farmer($c);
-	        }
-	        if ($c->built() > 50) {
-        	    explore($c);
-	        }	
-
-     		 if (turnsoffood($c) > 5) { sell_all_food($c); }
-
-	return true;	 
-
+	return run_turns_in_protection($c, 'F', 0.8);
     }
+
+	 
 
     //**OUT OF PROTECTION**//
     if ($c->protection == 0) { 
-
-	    if ($c->food > $c->foodnet * 10 && $c->turns == 1) {
-		return sellextrafood($c);
-	    }
 
 	//*****GET TO BPT TARGET**********//
 	if ($c->bpt < $target_bpt) {
@@ -184,8 +166,8 @@ function play_farmer_turn(&$c)
 	else {
 		return run_turns_to_stock($c, 'F');
 	}
-
     }
+
 
 
     if ($c->protection == 1) {
