@@ -351,7 +351,7 @@ class Country
     /**
      * Find Highest Goal
      * @param  array $goals an array of goals to persue
-     * @param  int   $skip  whtether or not to skip??
+     * @param  int   $skip  whether or not to skip??
      *
      * @return string highest goal!
      */
@@ -383,6 +383,8 @@ class Country
                 $score['t_mil'] = ($this->pt_mil - $goal[1]) / (100 - $goal[1]) * $goal[2] * (2500 / $price);
             } elseif ($goal[0] == 'nlg') {
                 $target       = $this->nlgt ?? $this->nlgTarget();
+		out("Target: ".$target."  Nltg: ".$this->nlgt."  Target: ".$this->nlgTarget()."  COMBO: ".$this->nlgt ?? $this->nlgTarget());
+		out("Target formula: ".floor(80 + pow($this->turns_played, 1) / 15));
                 $score['nlg'] = ($target - $this->nlg()) / $target * $goal[2];
             } elseif ($goal[0] == 'dpa') {
                 $target       = $this->dpat ?? $this->defPerAcreTarget();
@@ -409,7 +411,7 @@ class Country
     /**
      * Convoluted ladder logic to buy whichever goal is least fulfilled
      * @param  object  $c             the country object
-     * @param  array   $goals         an array of goals to persue
+     * @param  array   $goals         an array of goals to pursue
      * @param  int     $spend         money to spend
      * @param  int     $spend_partial intermediate money, for recursion
      * @param  integer $skip          goal to skip due to failure
@@ -427,7 +429,12 @@ class Country
             $c->dpat = $goals['dpa'];
         }
 
+
+	out("WE ALMOST HIT THIS!!");
+	out($goals['nlg']);
+
         if (isset($goals['nlg'])) {
+		out("WE HIT THIS!!");
             $c->nlgt = $goals['nlg'];
         }
 

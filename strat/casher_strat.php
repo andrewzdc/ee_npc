@@ -104,7 +104,7 @@ function play_casher_turn(&$c)
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
-    $target_land = $c->target_land();
+    $target_land = 10000; //$c->target_land();
     $target_bpt = $c->target_bpt();
 
 

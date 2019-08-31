@@ -98,14 +98,16 @@ class Bots
     public static function pickStrat($cnum)
     {
         $rand = rand(0, 100);
-        if ($rand < 25) {
+        if ($rand < 35) {
             return 'F';
-        } elseif ($rand < 55) {
+        } elseif ($rand < 65) {
             return 'T';
         } elseif ($rand < 80) {
             return 'C';
         } elseif ($rand < 95) {
             return 'I';
+        } elseif ($rand < 98) {
+            return 'O';
         } else {
             return 'R';
         }

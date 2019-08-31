@@ -104,7 +104,7 @@ function play_indy_turn(&$c)
  //c as in country!
 
     $target_bpt = 60;
-    $target_land = 15000;
+    $target_land = 10000;
     global $turnsleep;
     usleep($turnsleep);
     //out($main->turns . ' turns left');
@@ -144,7 +144,8 @@ function play_indy_turn(&$c)
 		out("Turns Played: ".$c->turns_played);
 		out("Turns Played div 12: ".$c->turns_played % 12);
 	        if ($c->turns_played % 12 < 10) {
-        	    return Build::cs();
+		    out("HEHAHEHA!");
+        	    return Build::cs(1);
 	        }
 	        
 		else {
@@ -152,7 +153,7 @@ function play_indy_turn(&$c)
 		            Build::indy($c);
 		        }
 		        elseif ($c->shouldBuildFullBPT() == 0) {
-		            Build::cs();
+		            Build::cs(1);
 		        }
 		        if ($c->shouldExplore()) {
         		    explore($c);

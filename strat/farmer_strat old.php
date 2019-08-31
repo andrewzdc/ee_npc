@@ -3,10 +3,15 @@
  * Farmer strategy
  *
  * PHP Version 7
+ *
  * @category Strat
+ *
  * @package EENPC
+ *
  * @author Julian Haagsma <jhaagsma@gmail.com>
+ *
  * @license All files licensed under the MIT license.
+ *
  * @link https://github.com/jhaagsma/ee_npc
  */
 
@@ -14,7 +19,9 @@ namespace EENPC;
 
 /**
  * Play the farmer strat
+ *
  * @param  ?? $server Contains the server information
+ *
  * @return null
  */
 function play_farmer_strat($server)
@@ -62,11 +69,16 @@ function play_farmer_strat($server)
 
     out($c->turns.' turns left');
     out('Explore Rate: '.$c->explore_rate.'; Min Rate: '.$c->explore_min);
+    //$pm_info = get_pm_info();   //get the PM info
+    //out_data($pm_info);       //output the PM info
+    //$market_info = get_market_info();   //get the Public Market info
+    //out_data($market_info);       //output the PM info
 
     $owned_on_market_info = get_owned_on_market_info();     //find out what we have on the market
+    //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
-    	out("Country Stats: ".$c->countryStats(FARMER, farmerGoals($c)));
+
         $result = play_farmer_turn($c);
 
         if ($result === false) {  //UNEXPECTED RETURN VALUE
@@ -111,8 +123,8 @@ function play_farmer_strat($server)
                 buy_farmer_goals($c, $spend/100);
             }
         }
-//        buy_cheap_military($c,1500000000,200);
-//        buy_cheap_military($c);
+        buy_cheap_military($c,1500000000,200);
+        buy_cheap_military($c);
     }
 
     $c->countryStats(FARMER, farmerGoals($c));
@@ -124,38 +136,107 @@ function play_farmer_turn(&$c)
  //c as in country!
 
     $target_bpt = 60;
-    $target_land = 9000;
+    $target_land = 5000;
     global $turnsleep;
     usleep($turnsleep);
-    out($c->turns . ' turns left');
+    //out($main->turns . ' turns left');
 
     //*****START UP STRATEGY**********//
     if ($c->protection == 1) {
-	return run_turns_in_protection($c, 'F', 0.8);
+
+		sell_all_military($c,1);
+
+	        if ($c->turns_played % 6 < 4) {
+        	    Build::cs();
+	        }
+	        elseif ($c->turns_played % 6 > 3) {
+	            Build::farmer($c);
+	        }
+	        if ($c->built() > 50) {
+        	    explore($c);
+	        }
+
+     		 if (turnsoffood($c) > 5) { sell_all_food($c); }
+
+	return true;
+
     }
-
-
 
     //**OUT OF PROTECTION**//
     if ($c->protection == 0) {
 
+	    if ($c->food > $c->foodnet * 10 && $c->turns == 1) {
+		return sellextrafood($c);
+	    }
+
 	//*****GET TO BPT TARGET**********//
 	if ($c->bpt < $target_bpt) {
-		return run_turns_to_target_bpt($c, 'F');
+
+		out("Turns Played: ".$c->turns_played);
+		out("Turns Played div 12: ".$c->turns_played % 12);
+		out("Empty: ".$c->empty);
+		out("Money1: ".$c->money);
+
+		buy_farmer_goals($c, $c->money / 10);
+
+		if ($c->empty == 0 && $c->shouldExplore()) {
+        	    explore($c);
+	 	}
+	        if ($c->turns_played % 12 < 10) {
+        	    return Build::cs();
+	        }
+
+		else {
+
+			if ($c->shouldBuildFullBPT()) {
+		            Build::farmer($c);
+		        }
+		        elseif ($c->shouldBuildFullBPT() == 0) {
+		            Build::cs();
+		        }
+			if ($c->shouldExplore()) {
+        		    explore($c);
+	 		}
+		}
+
 	}
 
-	//*****GET TO LAND TARGET**********//
 	elseif ($c->land < $target_land) {
-		return run_turns_to_target_land($c, 'F');
+
+		out("Money2: ".$c->money);
+
+		buy_farmer_goals($c, $c->money / 10);
+
+		if ($c->money < $c->income + $c->bpt * $c->build_cost * 1.5 && turns_of_money($c) && turns_of_food($c)) {
+			cash($c);
+			if ($c->foodnet > 0 && $c->foodnet > 3 * $c->foodcon && $c->food > 30 * $c->foodnet) {
+				sellextrafood($c);
+				return;
+		        }
+		}
+
+		if ($c->shouldBuildFullBPT()) {
+		      return Build::farmer($c);
+		}
+
+		if ($c->shouldExplore()) {
+		      return explore($c);
+		}
+
+
 	}
 
 
 	//*****STOCK!!!**********//
 	else {
 		return run_turns_to_stock($c, 'F');
+//		if ($c->food > $c->foodnet * 10) {
+//			sellextrafood($c, 1, 1);
+//		}
+//		return cash($c);
 	}
-    }
 
+    }
 
 
     if ($c->protection == 1) {
@@ -191,12 +272,11 @@ function buy_farmer_goals(&$c, $spend = null)
 
 function farmerGoals(&$c)
 {
-	out("FARMER GOALS NLG ARRAY THING: ".$c->nlgTarget());
     return [
         //what, goal, priority
         ['t_agri',227,10],
-        ['t_bus',170,2],
-        ['t_res',170,2],
+        ['t_bus',174,2],
+        ['t_res',174,2],
         ['t_mil',95,2],
         ['nlg',$c->nlgTarget(),5],
         ['dpa',$c->defPerAcreTarget(1.0),5],

@@ -1,7 +1,6 @@
 <?php
 /**
  * Farmer strategy
- *
  * PHP Version 7
  * @category Strat
  * @package EENPC
@@ -14,19 +13,18 @@ namespace EENPC;
 
 /**
  * Play the farmer strat
+ *
  * @param  ?? $server Contains the server information
+ *
  * @return null
  */
-function play_farmer_strat($server)
+function play_country_strat($server, $strat)
 {
     global $cnum;
     global $cpref;
     out("Playing ".FARMER." turns for #$cnum ".siteURL($cnum));
-    //$main = get_main();     //get the basic stats
-    //out_data($main);          //output the main data
     $c = get_advisor();     //c as in country! (get the advisor)
     $c->setIndy('pro_spy');
-    //$c = get_advisor();     //c as in country! (get the advisor)
 
 
     if ($c->m_spy > 10000) {
@@ -62,11 +60,16 @@ function play_farmer_strat($server)
 
     out($c->turns.' turns left');
     out('Explore Rate: '.$c->explore_rate.'; Min Rate: '.$c->explore_min);
+    //$pm_info = get_pm_info();   //get the PM info
+    //out_data($pm_info);       //output the PM info
+    //$market_info = get_market_info();   //get the Public Market info
+    //out_data($market_info);       //output the PM info
 
     $owned_on_market_info = get_owned_on_market_info();     //find out what we have on the market
+    //out_data($owned_on_market_info);  //output the Owned on Public Market info
 
     while ($c->turns > 0) {
-    	out("Country Stats: ".$c->countryStats(FARMER, farmerGoals($c)));
+
         $result = play_farmer_turn($c);
 
         if ($result === false) {  //UNEXPECTED RETURN VALUE
@@ -111,8 +114,8 @@ function play_farmer_strat($server)
                 buy_farmer_goals($c, $spend/100);
             }
         }
-//        buy_cheap_military($c,1500000000,200);
-//        buy_cheap_military($c);
+        buy_cheap_military($c,1500000000,200);
+        buy_cheap_military($c);
     }
 
     $c->countryStats(FARMER, farmerGoals($c));
@@ -127,7 +130,7 @@ function play_farmer_turn(&$c)
     $target_land = 9000;
     global $turnsleep;
     usleep($turnsleep);
-    out($c->turns . ' turns left');
+    //out($main->turns . ' turns left');
 
     //*****START UP STRATEGY**********//
     if ($c->protection == 1) {
@@ -191,12 +194,11 @@ function buy_farmer_goals(&$c, $spend = null)
 
 function farmerGoals(&$c)
 {
-	out("FARMER GOALS NLG ARRAY THING: ".$c->nlgTarget());
     return [
         //what, goal, priority
         ['t_agri',227,10],
-        ['t_bus',170,2],
-        ['t_res',170,2],
+        ['t_bus',174,2],
+        ['t_res',174,2],
         ['t_mil',95,2],
         ['nlg',$c->nlgTarget(),5],
         ['dpa',$c->defPerAcreTarget(1.0),5],

@@ -76,7 +76,7 @@ function play_techer_strat($server)
         }
 
         $c = get_advisor();
-        $c->updateMain(); 
+        $c->updateMain();
 
         $hold = $hold || money_management($c);
         $hold = $hold || food_management($c);
@@ -107,8 +107,8 @@ function play_techer_turn(&$c)
 
     if ($c->protection == 1) {
       sell_all_military($c,1);
-      if (turnsoffood($c) > 10) { sell_all_food($c); }
-    } 
+      if (turns_of_food($c) > 10) { sell_all_food($c); }
+    }
 
     if ($c->land > $c->target_land()) {
 	return run_turns_to_stock($c, 'T');
@@ -121,7 +121,7 @@ function play_techer_turn(&$c)
         if ($c->turns_played % 3 == 0) {
             Build::cs(4);
         }
-        if ($c->turns_played % 3 == 1) {
+        if ($c->turns_played % 3 != 0) {
             Build::farmer($c);
         }
         if ($c->built() > 50) {
